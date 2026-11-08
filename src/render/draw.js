@@ -1,0 +1,601 @@
+import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
+
+const INK = '"Simple Inkdrop", Georgia, serif';
+import { camera } from './fit.js';
+
+const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
+
+function phoneLayout(width, height) {
+  return width > 0 && width < 760 && height > width;
+}
+
+const PAPER = [
+  [92, 48], [748, 40], [804, 64], [822, 128], [808, 198],
+  [824, 286], [806, 372], [820, 468], [778, 548], [150, 562],
+  [104, 530], [86, 168],
+];
+
+const SHEET = [
+  [78, 62], [760, 54], [830, 86], [844, 160], [828, 250],
+  [846, 340], [824, 430], [840, 520], [790, 582], [120, 586],
+  [70, 540], [64, 180],
+];
+
+const FIBERS = [100, 168, 236, 304, 372, 440, 508];
+const SPECKS = [
+  [230, 86, 2.2],
+  [248, 100, 1.2],
+  [690, 500, 2.1],
+  [708, 486, 1.3],
+];
+
+const POSES = {
+  stand: {
+    lean: 0,
+    head: [-2, -100],
+    left: [-6, 2, -5, 14],
+    right: [6, 2, 5, 14],
+    skirt: [0, -54, 54, 36],
+  },
+  load: {
+    lean: 0.06,
+    head: [-2, -92],
+    left: [-8, 6, -6, 14],
+    right: [8, 6, 6, 14],
+    skirt: [0, -48, 56, 32],
+  },
+  tuck: {
+    lean: -0.04,
+    head: [-2, -104],
+    left: [-6, -2, -4, 1],
+    right: [5, 6, 4, 11],
+    skirt: [-2, -58, 52, 34],
+  },
+  land: {
+    lean: 0,
+    head: [-2, -96],
+    left: [-7, 4, -5, 14],
+    right: [7, 4, 5, 14],
+    skirt: [-2, -50, 58, 34],
+  },
+  stumble: {
+    lean: 0.5,
+    head: [2, -98],
+    left: [-8, 2, -6, 14],
+    right: [10, 4, 8, 16],
+    skirt: [4, -52, 52, 32],
+  },
+};
+
+function poly(ctx, points) {
+  ctx.beginPath();
+  ctx.moveTo(points[0][0], points[0][1]);
+  for (let i = 1; i < points.length; i += 1) ctx.lineTo(points[i][0], points[i][1]);
+  ctx.closePath();
+}
+
+function ink(ctx, width, draw) {
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = width;
+  ctx.beginPath();
+  draw(ctx);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function umbrellaHem(sx, srx, sry, t) {
+  const x = sx + (t - 0.5) * srx * 2;
+  const droop = Math.sin(t * Math.PI);
+  return { x, y: sry * (0.72 + droop * 0.28) };
+}
+
+function dressColors(vm) {
+  const dress = vm.dress || {};
+  return {
+    skirt: dress.skirt || COLOR.skirt,
+    deep: dress.deep || COLOR.skirtDeep,
+  };
+}
+
+function drawSkirt(ctx, spec, colors) {
+  const [sx, sy, srx, sry] = spec.skirt;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  for (let i = 0; i <= 12; i += 1) {
+    const hem = umbrellaHem(sx, srx, sry, i / 12);
+    ctx.lineTo(hem.x, sy + hem.y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = colors.skirt;
+  ctx.fill();
+  ctx.fillStyle = colors.deep;
+  ctx.beginPath();
+  ctx.moveTo(sx, sy + 2);
+  for (let i = 2; i <= 10; i += 1) {
+    const hem = umbrellaHem(sx, srx * 0.72, sry * 0.78, i / 12);
+    ctx.lineTo(hem.x, sy + hem.y);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  for (let i = 0; i <= 12; i += 1) {
+    const hem = umbrellaHem(sx, srx, sry, i / 12);
+    ctx.lineTo(hem.x, sy + hem.y);
+  }
+  ctx.closePath();
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2.6;
+  ctx.stroke();
+  ink(ctx, 1.6, (pen) => {
+    [0.2, 0.36, 0.5, 0.64, 0.8].forEach((t) => {
+      const hem = umbrellaHem(sx, srx, sry, t);
+      pen.moveTo(sx, sy);
+      pen.lineTo(hem.x, sy + hem.y * 0.92);
+    });
+  });
+}
+
+function poseOf(vm) {
+  return POSES[vm.pose] || POSES.stand;
+}
+
+function bodyTriangle(spec) {
+  const [, hy] = spec.head;
+  const [sx, sy] = spec.skirt;
+  const top = hy + 11;
+  const height = sy - top;
+  const side = (height * 2) / Math.sqrt(3);
+  return {
+    left: { x: sx - side / 2, y: top },
+    right: { x: sx + side / 2, y: top },
+    tip: { x: sx, y: top + height },
+  };
+}
+
+function gripsLocal(spec) {
+  const body = bodyTriangle(spec);
+  return [
+    { x: body.left.x - 22, y: body.left.y + 8 },
+    { x: body.right.x + 22, y: body.right.y + 8 },
+  ];
+}
+
+function toWorld(vm, local) {
+  const spec = poseOf(vm);
+  const originY = FIGURE.ground - vm.lift * 46;
+  const c = Math.cos(spec.lean);
+  const s = Math.sin(spec.lean);
+  return {
+    x: FIGURE.x + local.x * c - local.y * s,
+    y: originY + local.x * s + local.y * c,
+  };
+}
+
+function gripsWorld(vm) {
+  return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
+}
+
+function drawBody(ctx, spec, colors) {
+  const body = bodyTriangle(spec);
+  ctx.beginPath();
+  ctx.moveTo(body.left.x, body.left.y);
+  ctx.lineTo(body.right.x, body.right.y);
+  ctx.lineTo(body.tip.x, body.tip.y);
+  ctx.closePath();
+  ctx.fillStyle = colors.skirt;
+  ctx.fill();
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+}
+
+function drawHands(ctx, spec) {
+  const body = bodyTriangle(spec);
+  const grips = gripsLocal(spec);
+  const shoulders = [
+    [body.left.x, body.left.y],
+    [body.right.x, body.right.y],
+  ];
+  ink(ctx, 3.2, (pen) => {
+    shoulders.forEach((shoulder, index) => {
+      const grip = grips[index];
+      pen.moveTo(shoulder[0], shoulder[1]);
+      pen.quadraticCurveTo((shoulder[0] + grip.x) / 2, shoulder[1] + 12, grip.x, grip.y);
+    });
+  });
+  ctx.fillStyle = COLOR.ink;
+  grips.forEach((grip) => {
+    ctx.beginPath();
+    ctx.arc(grip.x, grip.y, 6.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawFigure(ctx, vm) {
+  const spec = poseOf(vm);
+  const y = FIGURE.ground - vm.lift * 46;
+  ctx.save();
+  ctx.translate(FIGURE.x, y);
+  ctx.rotate(spec.lean);
+  const [sx, sy, , sry] = spec.skirt;
+  const hem = sy + sry * 0.9;
+  const colors = dressColors(vm);
+  ink(ctx, 3.6, (pen) => {
+    pen.moveTo(sx - 4, hem);
+    pen.quadraticCurveTo(spec.left[0], spec.left[1], spec.left[2], spec.left[3]);
+    pen.moveTo(sx + 4, hem);
+    pen.quadraticCurveTo(spec.right[0], spec.right[1], spec.right[2], spec.right[3]);
+  });
+  drawSkirt(ctx, spec, colors);
+  const [, hy] = spec.head;
+  drawBody(ctx, spec, colors);
+  ctx.fillStyle = COLOR.ink;
+  ctx.beginPath();
+  ctx.arc(sx, hy, 10, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(sx - 1, hy - 12, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  drawHands(ctx, spec);
+  ctx.restore();
+}
+
+function drawShadow(ctx, lift) {
+  ctx.save();
+  ctx.strokeStyle = '#b7a890';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.85 - Math.min(lift, 1) * 0.55;
+  const x = FIGURE.x + 2;
+  const y = FIGURE.ground + 8;
+  [0, 1, 2, 3].forEach((i) => {
+    ctx.beginPath();
+    ctx.moveTo(x - 6 + i * 6, y);
+    ctx.lineTo(x - 16 + i * 6, y + 8);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawGround(ctx) {
+  ink(ctx, 2.4, (pen) => {
+    pen.moveTo(280, FIGURE.ground + 14);
+    pen.lineTo(720, FIGURE.ground + 14);
+  });
+}
+
+function ropePoint(angle, t, hands) {
+  const [left, right] = hands;
+  const midY = (left.y + right.y) / 2;
+  const lift = Math.sin(angle);
+  const amount = (lift < 0 ? -1 : 1) * (0.45 + Math.abs(lift) * 0.55);
+  const crest = amount < 0 ? midY - 88 : FIGURE.ground + 8;
+  const yCrest = midY + (crest - midY) * Math.abs(amount);
+  return {
+    x: left.x + (right.x - left.x) * t - Math.sin(t * Math.PI * 2) * ROPE.wide,
+    y: left.y + (right.y - left.y) * t + (yCrest - midY) * Math.sin(t * Math.PI),
+  };
+}
+
+function drawRope(ctx, vm, dashed, behind) {
+  if ((Math.cos(vm.angle) < -0.2) !== behind) return;
+  const hands = gripsWorld(vm);
+  const steps = 24;
+  for (let i = 0; i < steps; i += 1) {
+    const t0 = i / steps;
+    const t1 = (i + 1) / steps;
+    const mid = (t0 + t1) / 2;
+    const p0 = ropePoint(vm.angle, t0, hands);
+    const p1 = ropePoint(vm.angle, t1, hands);
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.strokeStyle = dashed ? COLOR.pencilLine : COLOR.cinnabar;
+    ctx.lineWidth = dashed ? 1.5 : 3.2 + (1 - Math.abs(mid - 0.5) * 2) * 3.4;
+    ctx.stroke();
+  }
+}
+
+function drawPage(ctx) {
+  ctx.fillStyle = COLOR.sheet;
+  poly(ctx, SHEET);
+  ctx.fill();
+  ctx.fillStyle = COLOR.paper;
+  poly(ctx, PAPER);
+  ctx.fill();
+  ctx.save();
+  ctx.strokeStyle = COLOR.fiber;
+  ctx.lineWidth = 1.4;
+  FIBERS.forEach((y) => {
+    ctx.beginPath();
+    ctx.moveTo(120, y);
+    ctx.lineTo(790, y);
+    ctx.stroke();
+  });
+  ctx.restore();
+  ctx.fillStyle = COLOR.ink;
+  [156, 268, 392].forEach((y) => {
+    ctx.beginPath();
+    ctx.arc(118, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+  SPECKS.forEach(([x, y, r]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawPencil(ctx, vm) {
+  ctx.save();
+  ctx.setLineDash([6, 8]);
+  drawRope(ctx, vm, true, false);
+  drawRope(ctx, vm, true, true);
+  ctx.restore();
+}
+
+function drawScore(ctx, vm) {
+  ctx.textAlign = 'right';
+  ctx.font = `72px ${INK}`;
+  ctx.fillStyle = COLOR.cinnabar;
+  ctx.fillText(String(vm.score), 820, 128);
+  ctx.font = `20px ${INK}`;
+  ctx.fillStyle = COLOR.pencil;
+  ctx.fillText('skips', 820, 156);
+  if (vm.showBest) {
+    ctx.font = `18px ${INK}`;
+    ctx.fillStyle = COLOR.pencil;
+    ctx.fillText(`best ${vm.best}`, 820, 182);
+  }
+  if (vm.crowned) {
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.font = `20px ${INK}`;
+    ctx.fillText('new', 748, 156);
+  }
+}
+
+function drawFleck(ctx, vm) {
+  ctx.save();
+  ctx.globalAlpha = vm.fleck;
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2;
+  const y = FIGURE.ground - vm.lift * 46 + 6;
+  [0, 1, 2].forEach((i) => {
+    ctx.beginPath();
+    ctx.moveTo(FIGURE.x - 28 + i * 8, y);
+    ctx.lineTo(FIGURE.x - 42 + i * 8, y + 10);
+    ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function inkRand(seed) {
+  let s = (Math.imul(Math.floor(Math.abs(seed) * 1000003) || 1, 0x9e3779b1)) >>> 0;
+  return () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+function splashDrops(seed) {
+  const rand = inkRand(Number.isFinite(seed) ? seed : 0.5);
+  return Array.from({ length: 42 }, (_, index) => {
+    const angle = rand() * Math.PI * 2;
+    const reach = 52 + rand() * 130;
+    const start = 8 + rand() * 22;
+    const sx = Math.cos(angle) * start;
+    const sy = -62 + Math.sin(angle) * start;
+    let ex = Math.cos(angle) * reach;
+    let ey = -62 + Math.sin(angle) * reach;
+    if (ey > -36) {
+      ey = -36 - rand() * (30 + rand() * 90);
+      ex += (rand() - 0.5) * 80;
+    }
+    const radius = index < 10 ? 8 + rand() * 8 : 1.6 + rand() * 3.2;
+    return [sx, sy, ex, ey, radius, index % 2];
+  });
+}
+
+function drawSplash(ctx, vm) {
+  const t = Math.min(1, Math.max(0, vm.blot));
+  const colors = dressColors(vm);
+  const ease = 1 - (1 - t) * (1 - t);
+  const originY = FIGURE.ground - vm.lift * 46;
+  ctx.save();
+  splashDrops(vm.splash).forEach(([sx, sy, ex, ey, radius, deep]) => {
+    const x = FIGURE.x + sx + (ex - sx) * ease;
+    const y = originY + sy + (ey - sy) * ease;
+    const stretch = 1 + (1 - t) * 1.4;
+    ctx.globalAlpha = Math.min(1, t / 0.18) * 0.9;
+    ctx.fillStyle = deep ? colors.deep : colors.skirt;
+    ctx.beginPath();
+    ctx.ellipse(
+      x,
+      y,
+      Math.max(1, radius * (0.45 + 0.55 * ease) * stretch),
+      Math.max(1, radius * (0.45 + 0.55 * ease)),
+      Math.atan2(ey - sy, ex - sx),
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  });
+  ctx.restore();
+}
+
+function titleSpot(sheet, phone) {
+  const playX = phone ? 410 : 250;
+  const cardX = phone ? 500 : 480;
+  const playY = phone ? 96 : 120;
+  const cardY = phone ? 168 : 250;
+  return {
+    x: playX + (cardX - playX) * sheet,
+    y: playY + (cardY - playY) * sheet,
+    size: phone ? 28 + sheet * 34 : 32 + 56 * sheet,
+  };
+}
+
+function drawTitle(ctx, sheet, phone) {
+  const spot = titleSpot(sheet, phone);
+  const gap = 8 + sheet * 10;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = COLOR.pencil;
+  ctx.font = `${spot.size}px ${INK}`;
+  ctx.textAlign = 'right';
+  ctx.fillText('ink', spot.x - gap, spot.y);
+  ctx.textAlign = 'left';
+  ctx.fillText('skip', spot.x + gap, spot.y);
+  return spot;
+}
+
+function drawPlay(ctx, vm, sheet) {
+  if (sheet > 0.98) return;
+  ctx.save();
+  ctx.globalAlpha = 1 - sheet;
+  const remain = vm.blot > 0 ? 1 - Math.min(1, vm.blot / 0.42) : 1;
+  drawGround(ctx);
+  if (vm.pencil) drawPencil(ctx, vm);
+  if (remain > 0.04) {
+    ctx.save();
+    ctx.globalAlpha *= remain;
+    drawRope(ctx, vm, false, true);
+    drawShadow(ctx, vm.lift);
+    drawFigure(ctx, vm);
+    drawRope(ctx, vm, false, false);
+    ctx.restore();
+  }
+  if (vm.fleck > 0) drawFleck(ctx, vm);
+  if (vm.blot > 0) drawSplash(ctx, vm);
+  ctx.restore();
+}
+
+function mix(from, to, t) {
+  return from + (to - from) * t;
+}
+
+function drawCornerScore(ctx, vm, alpha, phone) {
+  if (!vm.showScore || alpha <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  if (phone) ctx.translate(-230, 0);
+  drawScore(ctx, vm);
+  ctx.restore();
+}
+
+function drawRecap(ctx, vm, title, sheet, phone) {
+  const alpha = sheet >= 0.4 ? 1 : (sheet - 0.12) / 0.28;
+  const scoreDrop = phone ? 78 : 108;
+  const bestDrop = phone ? 122 : 176;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = COLOR.cinnabar;
+  ctx.font = `${phone ? 52 : 64}px ${INK}`;
+  ctx.fillText(String(vm.recap.score), title.x, title.y + scoreDrop);
+  if (vm.recap.best > 0) {
+    ctx.fillStyle = COLOR.pencil;
+    ctx.font = `${phone ? 22 : 28}px ${INK}`;
+    ctx.fillText(`best ${vm.recap.best}`, title.x, title.y + bestDrop);
+  }
+  if (vm.recap.crowned) {
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.font = `22px ${INK}`;
+    ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
+  }
+  ctx.restore();
+}
+
+function drawMovingScores(ctx, vm, title, sheet, phone) {
+  if (vm.recap) {
+    if (sheet > 0.12) {
+      drawRecap(ctx, vm, title, sheet, phone);
+      return;
+    }
+    drawCornerScore(ctx, vm, 1 - sheet / 0.12, phone);
+    return;
+  }
+  const forming = vm.phase === 'over';
+  const t = forming ? sheet : 0;
+  if (!forming) {
+    drawCornerScore(ctx, vm, 1 - Math.min(sheet, 1), phone);
+    return;
+  }
+  const ease = 1 - (1 - t) * (1 - t);
+  const fromX = phone ? 560 : 760;
+  const scoreDrop = phone ? 78 : 108;
+  const bestDrop = phone ? 122 : 176;
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'alphabetic';
+  const x = mix(fromX, title.x, ease);
+  const scoreY = mix(128, title.y + scoreDrop, ease);
+  ctx.fillStyle = COLOR.cinnabar;
+  ctx.font = `${mix(72, phone ? 52 : 64, ease)}px ${INK}`;
+  ctx.fillText(String(vm.score), x, scoreY);
+  if (t < 0.65) {
+    ctx.globalAlpha = 1 - t / 0.65;
+    ctx.fillStyle = COLOR.pencil;
+    ctx.font = `20px ${INK}`;
+    ctx.fillText('skips', x, mix(156, title.y + (phone ? 100 : 140), ease));
+  }
+  if (vm.showBest) {
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = COLOR.pencil;
+    ctx.font = `${mix(18, phone ? 22 : 28, ease)}px ${INK}`;
+    ctx.fillText(`best ${vm.best}`, x, mix(182, title.y + bestDrop, ease));
+  }
+  if (vm.crowned) {
+    ctx.globalAlpha = ease;
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.font = `22px ${INK}`;
+    ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
+  }
+  ctx.restore();
+}
+
+export function drawScene(ctx, width, height, vm, insets) {
+  const phone = phoneLayout(width, height);
+  const cam = camera(width, height, phone ? PHONE_STAGE : null, insets);
+  const sheet = Number.isFinite(vm.sheet) ? vm.sheet : 0;
+  const zoom = 1 + sheet * (phone ? 0.32 : 1.05);
+  const spot = titleSpot(sheet, phone);
+  const focusX = PAGE.w / 2 + (spot.x - PAGE.w / 2) * sheet;
+  const focusY = PAGE.h / 2 + (spot.y - PAGE.h / 2) * sheet;
+  ctx.save();
+  ctx.clearRect(0, 0, width, height);
+  ctx.fillStyle = COLOR.desk;
+  ctx.fillRect(0, 0, width, height);
+  ctx.translate(cam.ox, cam.oy);
+  ctx.scale(cam.s, cam.s);
+  ctx.translate(PAGE.w / 2, PAGE.h / 2);
+  ctx.scale(zoom, zoom);
+  ctx.translate(-focusX, -focusY);
+  ctx.fillStyle = COLOR.desk;
+  ctx.fillRect(-40, -40, PAGE.w + 80, PAGE.h + 80);
+  drawPage(ctx);
+  drawPlay(ctx, vm, sheet);
+  const title = drawTitle(ctx, sheet, phone);
+  drawMovingScores(ctx, vm, title, sheet, phone);
+  if (vm.hint && !vm.recap) {
+    ctx.save();
+    ctx.globalAlpha = Number.isFinite(vm.hintGlow) ? vm.hintGlow : 1;
+    ctx.fillStyle = COLOR.pencil;
+    const tap = vm.hint === 'tap to start';
+    ctx.font = `${tap ? 12 + sheet * 2 : 22 + sheet * 8}px ${INK}`;
+    if (sheet > 0.45) {
+      ctx.textAlign = 'center';
+      const hintY = vm.phase === 'over' ? title.y + (phone ? 168 : 232) : title.y + (phone ? 64 : 78);
+      ctx.fillText(vm.hint, title.x, hintY);
+    } else {
+      ctx.textAlign = phone ? 'center' : 'left';
+      ctx.fillText(vm.hint, phone ? 500 : 250, phone ? 562 : 548);
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+}
