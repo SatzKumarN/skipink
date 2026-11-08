@@ -40,8 +40,20 @@ describe('drawScene', () => {
     drawScene(dyed, 800, 600, scene({ dress: DRESSES[2], pose: 'stand', fleck: 0, blot: 0 }));
     expect(styleWas(dyed, 'fillStyle', DRESSES[2].skirt)).toBe(true);
     expect(styleWas(dyed, 'fillStyle', DRESSES[2].deep)).toBe(true);
-    expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === 'ink')).toBe(true);
-    expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === 'skip')).toBe(true);
+    const skipAt = ctx.calls.findIndex((call) => call[0] === 'fillText' && call[1] === 'skip');
+    const inkAt = ctx.calls.findIndex((call) => call[0] === 'fillText' && call[1] === 'ink');
+    const fillBefore = (index) => {
+      for (let i = index - 1; i >= 0; i -= 1) {
+        if (ctx.calls[i][0] === 'set' && ctx.calls[i][1] === 'fillStyle') return ctx.calls[i][2];
+      }
+      return null;
+    };
+    expect(skipAt).toBeGreaterThan(-1);
+    expect(inkAt).toBeGreaterThan(skipAt);
+    expect(ctx.calls[inkAt][2]).toBe(ctx.calls[skipAt][2] + ctx.calls[skipAt][1].length * 10);
+    expect(ctx.calls[inkAt][3]).toBe(ctx.calls[skipAt][3]);
+    expect(fillBefore(skipAt)).toBe(COLOR.cinnabar);
+    expect(fillBefore(inkAt)).toBe(COLOR.ink);
     expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === '4')).toBe(true);
     expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === 'new')).toBe(true);
     expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === 'best 2')).toBe(true);

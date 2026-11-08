@@ -5,6 +5,12 @@ export function mockContext() {
     {
       get(target, prop) {
         if (prop === 'calls') return calls;
+        if (prop === 'measureText') {
+          return (text) => {
+            calls.push(['measureText', text]);
+            return { width: String(text).length * 10 };
+          };
+        }
         if (prop in target) return target[prop];
         if (typeof prop !== 'string') return undefined;
         return (...args) => {

@@ -1,4 +1,4 @@
-# Inkskip
+# Skipink
 
 A one-button jump-rope game on a sketchbook page. The skipper holds the rope. It swings over the head and under the shoes. Press once while the rope is under the feet. Every clean skip is one point. The gap between turns changes, and a rope always arrives.
 
