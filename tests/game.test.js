@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AIRTIME, BLOT_TIME, GRACE, MAX_FRAME, OPENING_SLACK } from '../src/config.js';
+import { AIRTIME, BLOT_TIME, COUNTDOWN, GRACE, MAX_FRAME, OPENING_SLACK } from '../src/config.js';
 import { DRESSES } from '../src/config.js';
 import { createState, feetUp, frame, press, step } from '../src/core/game.js';
 import { buildSentence } from '../src/core/sentence.js';
@@ -7,7 +7,7 @@ import { buildSentence } from '../src/core/sentence.js';
 function seek(state, time) {
   let current = state;
   const events = [];
-  while (current.time < time - 1e-9 && current.phase === 'playing') {
+  while (current.time < time - 1e-9 && (current.phase === 'playing' || current.phase === 'count')) {
     const dt = Math.min(MAX_FRAME, time - current.time);
     const result = step(current, dt);
     current = result.state;
@@ -57,11 +57,29 @@ describe('a run', () => {
     const started = press(ready);
     expect(ready.phase).toBe('ready');
     expect(started.events).toEqual(['start']);
+    expect(started.state.phase).toBe('count');
     expect(started.state.score).toBe(0);
     expect(started.state.best).toBe(2);
-    expect(started.state.nextContact).toBeCloseTo(started.state.sentence[0].gap + OPENING_SLACK);
+    expect(started.state.jump).toBeNull();
+    expect(started.state.nextContact).toBeCloseTo(
+      COUNTDOWN + started.state.sentence[0].gap + OPENING_SLACK,
+    );
     expect(step(ready, 0.2).state.phase).toBe('ready');
     expect(step(ready, 0.2).events).toEqual([]);
+
+    let state = started.state;
+    while (state.time < 1) state = step(state, MAX_FRAME).state;
+    expect(state.phase).toBe('count');
+    while (state.time < 2) state = step(state, MAX_FRAME).state;
+    expect(state.phase).toBe('count');
+    expect(press(state).events).toEqual([]);
+    expect(press(state).state).toBe(state);
+    while (state.phase === 'count') state = step(state, MAX_FRAME).state;
+    expect(state.phase).toBe('playing');
+    expect(state.score).toBe(0);
+    expect(state.jump).toBeNull();
+    expect(state.time).toBeGreaterThanOrEqual(COUNTDOWN);
+    expect(state.time).toBeLessThan(COUNTDOWN + MAX_FRAME);
   });
 
   it('counts a press that is in the air when the stitch arrives', () => {
@@ -91,7 +109,8 @@ describe('a run', () => {
   });
 
   it('misses when the shoes are on the page', () => {
-    const state = seek(press(createState()).state, 2);
+    const started = press(createState()).state;
+    const state = seek(started, started.nextContact + 0.001);
     expect(state.state.phase).toBe('over');
     expect(state.events).toContain('miss');
     expect(state.state.crowned).toBe(false);
@@ -102,7 +121,7 @@ describe('a run', () => {
   });
 
   it('ignores a second press in the air and allows one after landing', () => {
-    let state = seek(press(createState()).state, 0.4).state;
+    let state = seek(press(createState()).state, COUNTDOWN + 0.4).state;
     state = press(state).state;
     expect(press(state).events).toEqual([]);
     expect(press(state).state).toBe(state);
@@ -135,8 +154,12 @@ describe('a run', () => {
     expect(again.events).toEqual(['start']);
     expect(again.state.score).toBe(0);
     expect(again.state.best).toBe(4);
-    expect(again.state.phase).toBe('playing');
+    expect(again.state.phase).toBe('count');
     expect(again.state.recap).toEqual({ score: 1, best: 4, crowned: false });
+    let replay = again.state;
+    while (replay.phase === 'count') replay = step(replay, MAX_FRAME).state;
+    expect(replay.phase).toBe('playing');
+    expect(replay.recap).toEqual({ score: 1, best: 4, crowned: false });
     expect(again.state.dress).toBe(1);
     expect(press(createState()).state.recap).toBeNull();
     expect(press(createState()).state.dress).toBe(0);
@@ -172,6 +195,6 @@ describe('frame', () => {
     const started = frame(createState(), 5, { pressed: true });
     expect(started.events).toEqual(['start']);
     expect(started.state.time).toBeCloseTo(MAX_FRAME);
-    expect(started.state.phase).toBe('playing');
+    expect(started.state.phase).toBe('count');
   });
 });

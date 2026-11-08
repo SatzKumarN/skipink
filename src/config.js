@@ -4,6 +4,7 @@ export const MIN_GAP = 0.42;
 export const BLOT_TIME = 0.7;
 export const OPENING_SLACK = 0.22;
 export const MAX_FRAME = 0.05;
+export const COUNTDOWN = 3;
 export const STORAGE_KEY = 'inkskip-best';
 
 export const PAGE = { w: 960, h: 640 };

@@ -92,6 +92,32 @@ describe('drawScene', () => {
       hint: 'tap to start',
       hintGlow: 0.2,
     }));
+    const counting = mockContext();
+    drawScene(counting, 900, 640, scene({
+      phase: 'count',
+      sheet: 1,
+      score: 0,
+      showScore: false,
+      hint: '',
+      count: 3,
+    }));
+    expect(counting.calls.some((call) => call[0] === 'fillText' && call[1] === '3')).toBe(true);
+    const phoneCount = mockContext();
+    drawScene(phoneCount, 390, 844, scene({
+      phase: 'count',
+      sheet: 1,
+      score: 0,
+      showScore: false,
+      hint: '',
+      count: 1,
+    }));
+    expect(phoneCount.calls.some((call) => call[0] === 'fillText' && call[1] === '1')).toBe(true);
+    drawScene(mockContext(), 900, 640, scene({
+      phase: 'count',
+      sheet: 1,
+      hint: '',
+      count: 4,
+    }));
 
     drawScene(mockContext(), 900, 640, scene({
       phase: 'playing',

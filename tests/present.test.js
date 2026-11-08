@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { AIRTIME, BLOT_TIME, DRESSES } from '../src/config.js';
+import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES } from '../src/config.js';
 import { createState, press, step } from '../src/core/game.js';
 import { MAX_FRAME } from '../src/config.js';
 import {
   blotAmount,
   buttonLabel,
+  countDigit,
   figurePose,
   footClearance,
   handLift,
@@ -16,7 +17,10 @@ import {
 
 function at(time) {
   let state = press(createState()).state;
-  while (state.time < time) state = step(state, Math.min(MAX_FRAME, time - state.time)).state;
+  const goal = COUNTDOWN + time;
+  while (state.time < goal - 1e-9) {
+    state = step(state, Math.min(MAX_FRAME, goal - state.time)).state;
+  }
   return state;
 }
 
@@ -68,11 +72,23 @@ describe('hands and blot', () => {
 describe('copy', () => {
   it('names the button and the pencil note for each phase', () => {
     expect(buttonLabel('ready', 0)).toBe('Start');
+    expect(buttonLabel('count', 0, 3)).toBe('3');
+    expect(buttonLabel('count', 0, null)).toBe('');
     expect(buttonLabel('over', 0.2)).toBe('Wait');
     expect(buttonLabel('over', 1)).toBe('Try again');
     expect(buttonLabel('playing', 0)).toBe('Jump');
     expect(buttonLabel('other', 0)).toBe('Jump');
     const ready = createState();
+    const counting = press(ready).state;
+    expect(countDigit(counting)).toBe(3);
+    expect(countDigit({ ...counting, time: 1 })).toBe(2);
+    expect(countDigit({ ...counting, time: 2.2 })).toBe(1);
+    expect(countDigit({ ...counting, time: COUNTDOWN })).toBeNull();
+    expect(countDigit({ ...counting, time: -1 })).toBe(3);
+    expect(countDigit({ ...counting, time: Number.NaN })).toBe(3);
+    expect(countDigit(ready)).toBeNull();
+    expect(countDigit(null)).toBeNull();
+    expect(hintFor(counting, 0)).toBe('');
     const playing = at(0.1);
     expect(hintFor(ready, 0)).toBe('tap to start');
     expect(hintFor(playing, 0)).toBe('watch the rope');
@@ -103,6 +119,18 @@ describe('viewModel', () => {
     expect(viewModel({ ...createState(), dress: Number.NaN }).dress).toEqual(DRESSES[0]);
     expect(ready.pencil).toBe(true);
     expect(ready.label).toBe('Start');
+    const countView = viewModel(press(createState()).state);
+    expect(countView.count).toBe(3);
+    expect(countView.label).toBe('3');
+    expect(countView.waiting).toBe(true);
+    expect(countView.sheet).toBe(1);
+    expect(countView.hint).toBe('');
+    expect(countView.showScore).toBe(false);
+    expect(viewModel({ ...press(createState()).state, time: 1.2 }).count).toBe(2);
+    expect(sheetAmount({ phase: 'count', time: 2 }, false)).toBe(1);
+    expect(sheetAmount({ phase: 'count', time: 2 }, true)).toBe(1);
+    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN }, false)).toBe(1);
+    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN + 0.35 }, false)).toBeCloseTo(1 - 0.35 / 0.7);
     const quiet = viewModel(createState(), { clock: Number.NaN });
     expect(quiet.angle).toBeGreaterThan(0);
 
@@ -142,7 +170,7 @@ describe('viewModel', () => {
     expect(done.crowned).toBe(true);
     expect(done.fleck).toBe(0);
     expect(done.hint).toBe('tap to start');
-    expect(done.sheet).toBe(0);
+    expect(done.sheet).toBeCloseTo(0);
     expect(sheetAmount({
       phase: 'over',
       overAt: state.time,
@@ -153,7 +181,7 @@ describe('viewModel', () => {
     const restarted = viewModel({ ...state, score: 0, best: 4, recap: { score: 3, best: 4, crowned: true } });
     expect(restarted.recap).toEqual({ score: 3, best: 4, crowned: true });
     expect(viewModel({ ...state, recap: { score: 1, best: 1, crowned: false } }).recap.crowned).toBe(false);
-    expect(viewModel({ ...state, time: 2, recap: { score: 3, best: 4 } }).recap).toBeNull();
+    expect(viewModel({ ...state, time: COUNTDOWN + 2, recap: { score: 3, best: 4 } }).recap).toBeNull();
     expect(viewModel({ ...state, recap: { score: 3, best: 4 } }, { reducedMotion: true }).recap).toBeNull();
 
     const freshMiss = viewModel(

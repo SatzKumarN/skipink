@@ -1,4 +1,4 @@
-import { AIRTIME, BLOT_TIME, DRESSES } from '../config.js';
+import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES } from '../config.js';
 import { clamp01 } from './math.js';
 import { idleAngle, ropeProgress } from './rope.js';
 
@@ -45,8 +45,17 @@ export function blotAmount(state, reducedMotion) {
   return clamp01((state.time - state.overAt) / BLOT_TIME);
 }
 
-export function buttonLabel(phase, blot) {
+export function countDigit(state) {
+  if (!state || state.phase !== 'count') return null;
+  const elapsed = Number.isFinite(state.time) && state.time > 0 ? state.time : 0;
+  const left = COUNTDOWN - elapsed;
+  if (left <= 0) return null;
+  return Math.ceil(left);
+}
+
+export function buttonLabel(phase, blot, count) {
   if (phase === 'ready') return 'Start';
+  if (phase === 'count') return count ? String(count) : '';
   if (phase === 'over' && blot < 1) return 'Wait';
   if (phase === 'over') return 'Try again';
   return 'Jump';
@@ -54,10 +63,15 @@ export function buttonLabel(phase, blot) {
 
 const ZOOM_TIME = 0.7;
 
+function playedFor(state) {
+  const elapsed = state.time - COUNTDOWN;
+  return elapsed > 0 ? elapsed : 0;
+}
+
 export function sheetAmount(state, reducedMotion) {
-  if (state.phase === 'ready') return 1;
+  if (state.phase === 'ready' || state.phase === 'count') return 1;
   if (state.phase === 'playing') {
-    return reducedMotion ? 0 : 1 - clamp01(state.time / ZOOM_TIME);
+    return reducedMotion ? 0 : 1 - clamp01(playedFor(state) / ZOOM_TIME);
   }
   if (state.phase === 'over') {
     if (reducedMotion || state.overAt == null) return 1;
@@ -82,6 +96,7 @@ export function hintFor(state, blot) {
 export function viewModel(state, options = {}) {
   const clock = Number.isFinite(options.clock) ? options.clock : state.time;
   const blot = blotAmount(state, Boolean(options.reducedMotion));
+  const count = countDigit(state);
   const progress = state.phase === 'playing' || state.phase === 'over'
     ? ropeProgress(state)
     : { u: ((clock % 2.2) + 2.2) % 2.2 / 2.2, mood: 'even', angle: idleAngle(clock) };
@@ -121,9 +136,10 @@ export function viewModel(state, options = {}) {
       : 1,
     sheet,
     recap,
-    showScore: state.phase !== 'ready',
+    count,
+    showScore: state.phase === 'playing' || state.phase === 'over',
     fleck,
-    label: buttonLabel(state.phase, blot),
-    waiting: state.phase === 'over' && blot < 1,
+    label: buttonLabel(state.phase, blot, count),
+    waiting: (state.phase === 'over' && blot < 1) || state.phase === 'count',
   };
 }

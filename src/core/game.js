@@ -1,4 +1,4 @@
-import { AIRTIME, BLOT_TIME, DRESSES, GRACE, MAX_FRAME, OPENING_SLACK } from '../config.js';
+import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES, GRACE, MAX_FRAME, OPENING_SLACK } from '../config.js';
 import { buildSentence } from './sentence.js';
 
 export function createState(best = 0) {
@@ -36,10 +36,10 @@ function startRun(state) {
   return {
     state: {
       ...createState(state.best),
-      phase: 'playing',
+      phase: 'count',
       sentence,
-      prevContact: 0,
-      nextContact: first.gap + OPENING_SLACK,
+      prevContact: COUNTDOWN,
+      nextContact: COUNTDOWN + first.gap + OPENING_SLACK,
       mood: first.mood,
       dress: dressIndex(state),
       recap: state.phase === 'over'
@@ -99,6 +99,11 @@ export function step(state, dt) {
   const frame = Number.isFinite(dt) && dt > 0 ? Math.min(dt, MAX_FRAME) : 0;
   let next = { ...state, time: state.time + frame };
   const events = [];
+
+  if (next.phase === 'count') {
+    if (next.time < COUNTDOWN) return { state: next, events };
+    next = { ...next, phase: 'playing' };
+  }
 
   if (next.phase !== 'playing') return { state: next, events };
 

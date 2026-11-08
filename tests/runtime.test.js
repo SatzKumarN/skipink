@@ -62,11 +62,31 @@ describe('startGame', () => {
     expect(game.getState().phase).toBe('ready');
     button.dispatchEvent(new PointerEvent('pointerdown', { button: 0, cancelable: true }));
     queued.shift()(1032);
-    expect(game.getState().phase).toBe('playing');
+    expect(game.getState().phase).toBe('count');
+    expect(button.textContent).toBe('3');
+    expect(button.disabled).toBe(true);
     game.stop();
     const pending = queued.at(-1);
     pending(1100);
     expect(game.getState().time).toBeLessThan(0.05);
+  });
+
+  it('counts 3, 2, 1 before the rope starts', () => {
+    const { env, queued, button } = harness();
+    const game = startGame(env);
+    let now = 1000;
+    queued.shift()(now);
+    button.dispatchEvent(new PointerEvent('pointerdown', { button: 0, cancelable: true }));
+    const seen = [];
+    while (game.getState().phase !== 'playing') {
+      now += 50;
+      queued.shift()(now);
+      if (button.textContent !== seen.at(-1)) seen.push(button.textContent);
+    }
+    expect(seen).toEqual(['3', '2', '1', 'Jump']);
+    expect(game.getState().score).toBe(0);
+    expect(button.disabled).toBe(false);
+    game.stop();
   });
 
   it('uses the real frame, page painter, and silent synth when none are injected', () => {

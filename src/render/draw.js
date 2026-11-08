@@ -439,6 +439,18 @@ function titleSpot(sheet, phone) {
   };
 }
 
+function drawCountdown(ctx, width, height, count) {
+  if (count !== 1 && count !== 2 && count !== 3) return;
+  ctx.save();
+  ctx.fillStyle = COLOR.cinnabar;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const size = Math.round(Math.min(width, height) * 0.2);
+  ctx.font = `${size}px ${INK}`;
+  ctx.fillText(String(count), width / 2, height * 0.75);
+  ctx.restore();
+}
+
 function drawTitle(ctx, sheet, phone) {
   const spot = titleSpot(sheet, phone);
   const gap = 8 + sheet * 10;
@@ -598,4 +610,5 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.restore();
   }
   ctx.restore();
+  if (vm.count) drawCountdown(ctx, width, height, vm.count);
 }
