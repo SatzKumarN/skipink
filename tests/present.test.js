@@ -123,14 +123,20 @@ describe('viewModel', () => {
     expect(countView.count).toBe(3);
     expect(countView.label).toBe('3');
     expect(countView.waiting).toBe(true);
-    expect(countView.sheet).toBe(1);
+    expect(countView.sheet).toBe(0);
+    expect(countView.pose).toBe('stand');
+    expect(countView.u).toBe(0);
     expect(countView.hint).toBe('');
     expect(countView.showScore).toBe(false);
-    expect(viewModel({ ...press(createState()).state, time: 1.2 }).count).toBe(2);
-    expect(sheetAmount({ phase: 'count', time: 2 }, false)).toBe(1);
-    expect(sheetAmount({ phase: 'count', time: 2 }, true)).toBe(1);
-    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN }, false)).toBe(1);
-    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN + 0.35 }, false)).toBeCloseTo(1 - 0.35 / 0.7);
+    const midCount = viewModel({ ...press(createState()).state, time: 1.2 });
+    expect(midCount.count).toBe(2);
+    expect(midCount.sheet).toBe(0);
+    expect(midCount.pose).toBe('stand');
+    expect(sheetAmount({ phase: 'count', time: 2 }, false)).toBe(0);
+    expect(sheetAmount({ phase: 'count', time: 2 }, true)).toBe(0);
+    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN }, false)).toBe(0);
+    expect(sheetAmount({ phase: 'playing', time: COUNTDOWN + 0.35 }, false)).toBe(0);
+    expect(sheetAmount({ phase: 'playing', time: 0.35 }, false)).toBeCloseTo(1 - 0.35 / 0.7);
     const quiet = viewModel(createState(), { clock: Number.NaN });
     expect(quiet.angle).toBeGreaterThan(0);
 
@@ -178,9 +184,10 @@ describe('viewModel', () => {
     }, false)).toBe(1);
     expect(done.recap).toBeNull();
 
-    const restarted = viewModel({ ...state, score: 0, best: 4, recap: { score: 3, best: 4, crowned: true } });
+    const opening = { ...state, time: 0.2, score: 0, best: 4, recap: { score: 3, best: 4, crowned: true } };
+    const restarted = viewModel(opening);
     expect(restarted.recap).toEqual({ score: 3, best: 4, crowned: true });
-    expect(viewModel({ ...state, recap: { score: 1, best: 1, crowned: false } }).recap.crowned).toBe(false);
+    expect(viewModel({ ...opening, recap: { score: 1, best: 1, crowned: false } }).recap.crowned).toBe(false);
     expect(viewModel({ ...state, time: COUNTDOWN + 2, recap: { score: 3, best: 4 } }).recap).toBeNull();
     expect(viewModel({ ...state, recap: { score: 3, best: 4 } }, { reducedMotion: true }).recap).toBeNull();
 

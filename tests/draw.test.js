@@ -124,6 +124,19 @@ describe('drawScene', () => {
       count: 1,
     }));
     expect(phoneCount.calls.some((call) => call[0] === 'fillText' && call[1] === '1')).toBe(true);
+    const withFigure = mockContext();
+    drawScene(withFigure, 900, 640, scene({
+      phase: 'count',
+      sheet: 0,
+      score: 0,
+      showScore: false,
+      hint: '',
+      count: 2,
+      pose: 'stand',
+      pencil: true,
+    }));
+    expect(withFigure.calls.some((call) => call[0] === 'fillText' && call[1] === '2')).toBe(true);
+    expect(styleWas(withFigure, 'fillStyle', COLOR.skirt)).toBe(true);
     drawScene(mockContext(), 900, 640, scene({
       phase: 'count',
       sheet: 1,

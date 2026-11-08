@@ -439,15 +439,14 @@ function titleSpot(sheet, phone) {
   };
 }
 
-function drawCountdown(ctx, width, height, count) {
+function drawCountdown(ctx, count, phone) {
   if (count !== 1 && count !== 2 && count !== 3) return;
   ctx.save();
   ctx.fillStyle = COLOR.cinnabar;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const size = Math.round(Math.min(width, height) * 0.2);
-  ctx.font = `${size}px ${INK}`;
-  ctx.fillText(String(count), width / 2, height * 0.75);
+  ctx.font = `${phone ? 96 : 128}px ${INK}`;
+  ctx.fillText(String(count), FIGURE.x, phone ? 188 : 236);
   ctx.restore();
 }
 
@@ -595,6 +594,7 @@ export function drawScene(ctx, width, height, vm, insets) {
   ctx.fillRect(-40, -40, PAGE.w + 80, PAGE.h + 80);
   drawPage(ctx);
   drawPlay(ctx, vm, sheet);
+  if (vm.count) drawCountdown(ctx, vm.count, phone);
   const title = drawTitle(ctx, sheet, phone);
   drawMovingScores(ctx, vm, title, sheet, phone);
   if (vm.hint && !vm.recap) {
@@ -614,5 +614,4 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.restore();
   }
   ctx.restore();
-  if (vm.count) drawCountdown(ctx, width, height, vm.count);
 }

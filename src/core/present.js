@@ -63,15 +63,11 @@ export function buttonLabel(phase, blot, count) {
 
 const ZOOM_TIME = 0.7;
 
-function playedFor(state) {
-  const elapsed = state.time - COUNTDOWN;
-  return elapsed > 0 ? elapsed : 0;
-}
-
 export function sheetAmount(state, reducedMotion) {
-  if (state.phase === 'ready' || state.phase === 'count') return 1;
+  if (state.phase === 'ready') return 1;
+  if (state.phase === 'count') return 0;
   if (state.phase === 'playing') {
-    return reducedMotion ? 0 : 1 - clamp01(playedFor(state) / ZOOM_TIME);
+    return reducedMotion ? 0 : 1 - clamp01(state.time / ZOOM_TIME);
   }
   if (state.phase === 'over') {
     if (reducedMotion || state.overAt == null) return 1;
@@ -97,7 +93,7 @@ export function viewModel(state, options = {}) {
   const clock = Number.isFinite(options.clock) ? options.clock : state.time;
   const blot = blotAmount(state, Boolean(options.reducedMotion));
   const count = countDigit(state);
-  const progress = state.phase === 'playing' || state.phase === 'over'
+  const progress = state.phase === 'playing' || state.phase === 'over' || state.phase === 'count'
     ? ropeProgress(state)
     : { u: ((clock % 2.2) + 2.2) % 2.2 / 2.2, mood: 'even', angle: idleAngle(clock) };
 
