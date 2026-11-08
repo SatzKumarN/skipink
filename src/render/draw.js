@@ -441,14 +441,18 @@ function titleSpot(sheet, phone) {
 
 function drawTitle(ctx, sheet, phone) {
   const spot = titleSpot(sheet, phone);
-  const gap = 8 + sheet * 10;
+  const skip = 'skip';
+  const inkWord = 'ink';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = COLOR.pencil;
-  ctx.font = `${spot.size}px ${INK}`;
-  ctx.textAlign = 'right';
-  ctx.fillText('ink', spot.x - gap, spot.y);
   ctx.textAlign = 'left';
-  ctx.fillText('skip', spot.x + gap, spot.y);
+  ctx.font = `${spot.size}px ${INK}`;
+  const skipWidth = ctx.measureText(skip).width;
+  const inkWidth = ctx.measureText(inkWord).width;
+  const start = spot.x - (skipWidth + inkWidth) / 2;
+  ctx.fillStyle = COLOR.cinnabar;
+  ctx.fillText(skip, start, spot.y);
+  ctx.fillStyle = COLOR.ink;
+  ctx.fillText(inkWord, start + skipWidth, spot.y);
   return spot;
 }
 

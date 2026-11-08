@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { STORAGE_KEY } from '../src/config.js';
 import { createState } from '../src/core/game.js';
 import { prefersReducedMotion, startGame } from '../src/runtime.js';
 import { mockContext } from './helpers/mockContext.js';
@@ -102,7 +103,7 @@ describe('startGame', () => {
     expect(box.audio.play.mock.calls.map((call) => call[0])).toEqual(['jump', 'jump', 'land', 'blot']);
     expect(box.audio.hum).toHaveBeenCalledWith(expect.any(Number));
     expect(box.audio.hum.mock.calls.at(-1)[0]).toBeGreaterThan(0);
-    expect(box.mem.get('inkskip-best')).toBe('4');
+    expect(box.mem.get(STORAGE_KEY)).toBe('4');
     expect(box.paint.mock.calls[0][3].label).toBe('Jump');
     game.stop();
   });
@@ -134,7 +135,7 @@ describe('startGame', () => {
 
   it('waits out a short blot and does not write an unchanged best', () => {
     const box = harness();
-    box.mem.set('inkskip-best', '6');
+    box.mem.set(STORAGE_KEY, '6');
     box.env.update = () => ({
       state: {
         ...createState(6),
@@ -151,7 +152,7 @@ describe('startGame', () => {
     box.queued.shift()(1000);
     expect(box.button.disabled).toBe(true);
     expect(box.button.textContent).toBe('Wait');
-    expect(box.mem.get('inkskip-best')).toBe('6');
+    expect(box.mem.get(STORAGE_KEY)).toBe('6');
     game.stop();
   });
 
