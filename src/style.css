@@ -13,6 +13,7 @@ body {
   overflow: hidden;
   overscroll-behavior: none;
   background: #d7c4a8;
+  -webkit-tap-highlight-color: transparent;
 }
 
 canvas {
@@ -31,6 +32,13 @@ canvas {
   color: transparent;
   cursor: pointer;
   touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+
+.jump:active {
+  background: transparent;
 }
 
 .jump:focus-visible {
