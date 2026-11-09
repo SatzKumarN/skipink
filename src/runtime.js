@@ -50,7 +50,6 @@ export function startGame(env) {
     });
     const speed = state.phase === 'playing'
       ? angularVelocity(
-        state.mood,
         ropeProgress(state).u,
         state.nextContact - state.prevContact,
       )

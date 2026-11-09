@@ -12,32 +12,26 @@ import {
 } from '../src/core/rope.js';
 
 describe('stitchAngle', () => {
-  it('walks every mood through a full smooth turn', () => {
-    expect(stitchAngle('even', 0)).toBeCloseTo(BOTTOM);
-    expect(stitchAngle('even', 1)).toBeCloseTo(BOTTOM + Math.PI * 2);
-    expect(stitchAngle('even', -1)).toBeCloseTo(BOTTOM);
-    expect(stitchAngle('even', 2)).toBeCloseTo(BOTTOM + Math.PI * 2);
-
-    expect(stitchAngle('hang', 0)).toBeCloseTo(BOTTOM);
-    expect(stitchAngle('hang', 0.2)).toBeGreaterThan(BOTTOM);
-    expect(Math.abs(stitchAngle('hang', 0.5) - TOP)).toBeLessThan(0.1);
-    expect(stitchAngle('hang', 1)).toBeCloseTo(TOP + Math.PI);
-
-    expect(stitchAngle('snap', 0.5)).toBeCloseTo(stitchAngle('even', 0.5));
-    expect(stitchAngle('snap', 1)).toBeCloseTo(BOTTOM + Math.PI * 2);
-    expect(stitchAngle('mystery', 0.25)).toBeCloseTo(stitchAngle('even', 0.25));
+  it('walks a full smooth turn', () => {
+    expect(stitchAngle(0)).toBeCloseTo(BOTTOM);
+    expect(stitchAngle(1)).toBeCloseTo(BOTTOM + Math.PI * 2);
+    expect(stitchAngle(-1)).toBeCloseTo(BOTTOM);
+    expect(stitchAngle(2)).toBeCloseTo(BOTTOM + Math.PI * 2);
+    expect(stitchAngle(0.2)).toBeGreaterThan(BOTTOM);
+    expect(Math.abs(stitchAngle(0.5) - TOP)).toBeLessThan(0.1);
+    expect(stitchAngle(1)).toBeCloseTo(TOP + Math.PI);
   });
 });
 
 describe('angularVelocity', () => {
   it('follows the wrist and ignores a bad gap', () => {
-    expect(angularVelocity('even', 0.5, 0)).toBe(0);
-    expect(angularVelocity('even', 0.5, -1)).toBe(0);
-    expect(angularVelocity('even', 0.5, Number.NaN)).toBe(0);
-    expect(angularVelocity('snap', 0.9, 0.5)).toBeCloseTo(angularVelocity('snap', 0.1, 0.5));
-    expect(angularVelocity('hang', 0.5, 1)).toBeCloseTo(angularVelocity('hang', 0.2, 1));
-    expect(angularVelocity('even', 0, 0.8)).toBeGreaterThan(0);
-    expect(angularVelocity('even', 1, 0.8)).toBeGreaterThan(0);
+    expect(angularVelocity(0.5, 0)).toBe(0);
+    expect(angularVelocity(0.5, -1)).toBe(0);
+    expect(angularVelocity(0.5, Number.NaN)).toBe(0);
+    expect(angularVelocity(0.9, 0.5)).toBeCloseTo(angularVelocity(0.1, 0.5));
+    expect(angularVelocity(0.5, 1)).toBeCloseTo(angularVelocity(0.2, 1));
+    expect(angularVelocity(0, 0.8)).toBeGreaterThan(0);
+    expect(angularVelocity(1, 0.8)).toBeGreaterThan(0);
   });
 });
 
@@ -45,7 +39,7 @@ describe('rope geometry', () => {
   it('places the ellipse and the idle turn', () => {
     expect(ellipsePoint(0)).toEqual({ x: ELLIPSE.cx + ELLIPSE.rx, y: ELLIPSE.cy });
     expect(ellipsePoint(Math.PI / 2).y).toBeCloseTo(ELLIPSE.cy + ELLIPSE.ry);
-    expect(idleAngle(Number.NaN)).toBeCloseTo(stitchAngle('even', 0));
+    expect(idleAngle(Number.NaN)).toBeCloseTo(stitchAngle(0));
     expect(idleAngle(-1)).toBeGreaterThan(0);
     expect(idleAngle(2.2)).toBeCloseTo(idleAngle(0));
   });
