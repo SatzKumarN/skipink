@@ -4,8 +4,11 @@ export function fitCanvas(canvas, window) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.max(1, window.innerWidth || 1);
   const h = Math.max(1, window.innerHeight || 1);
-  canvas.width = Math.floor(w * dpr);
-  canvas.height = Math.floor(h * dpr);
+  const width = Math.floor(w * dpr);
+  const height = Math.floor(h * dpr);
+  // Assigning either attribute clears the bitmap and resets the 2D context.
+  if (canvas.width !== width) canvas.width = width;
+  if (canvas.height !== height) canvas.height = height;
   canvas.style.width = `${w}px`;
   canvas.style.height = `${h}px`;
   return { dpr, w, h };
