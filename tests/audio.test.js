@@ -28,7 +28,7 @@ describe('ropeHum', () => {
 });
 
 describe('createSynth', () => {
-  it('uses the standard context, then the prefixed one, then silence', () => {
+  it('stays quiet until unlock, and prefers the standard context', () => {
     let made = '';
     class First extends FakeAudioContext {
       constructor() {
@@ -43,13 +43,20 @@ describe('createSynth', () => {
       }
     }
     const both = createSynth({ AudioContext: First, webkitAudioContext: Second });
-    expect(both.play('jump')).toBe(true);
+    expect(both.play('jump')).toBe(false);
+    expect(both.hum(1)).toBe(0);
+    expect(made).toBe('');
+    expect(both.unlock()).toBe(true);
     expect(made).toBe('first');
     expect(both.play('jump')).toBe(true);
+    expect(both.unlock()).toBe(true);
+    expect(both.play('jump')).toBe(true);
     const prefixed = createSynth({ webkitAudioContext: Second });
+    expect(prefixed.unlock()).toBe(true);
     expect(prefixed.play('land')).toBe(true);
     expect(made).toBe('second');
     const silent = createSynth({});
+    expect(silent.unlock()).toBe(false);
     expect(silent.play('land')).toBe(false);
     expect(silent.hum(1)).toBe(0);
   });
@@ -63,13 +70,29 @@ describe('createSynth', () => {
       }
     }
     const synth = createSynth({ AudioContext: Counting });
+    expect(synth.hum(1)).toBe(0);
+    expect(buffers).toBe(0);
+    synth.unlock();
     expect(synth.hum(1)).toBe(0.05);
     expect(synth.hum(0)).toBe(0);
     expect(synth.hum(Number.NaN)).toBe(0);
     expect(buffers).toBe(1);
   });
 
-  it('still plays when the context cannot resume', () => {
+  it('resumes while suspended and still plays when resume is missing', () => {
+    let resumes = 0;
+    class Holding extends FakeAudioContext {
+      resume() {
+        resumes += 1;
+        return Promise.resolve();
+      }
+    }
+    const held = createSynth({ AudioContext: Holding });
+    expect(held.unlock()).toBe(true);
+    expect(held.unlock()).toBe(true);
+    expect(resumes).toBe(2);
+    expect(held.play('jump')).toBe(true);
+
     class Stuck {
       constructor() {
         this.state = 'suspended';
@@ -95,15 +118,24 @@ describe('createSynth', () => {
       }
     }
     const synth = createSynth({ AudioContext: Stuck });
+    expect(synth.unlock()).toBe(true);
     expect(synth.play('jump')).toBe(true);
+    let runningResumes = 0;
     const running = createSynth({
       AudioContext: class extends FakeAudioContext {
         constructor() {
           super();
           this.state = 'running';
         }
+
+        resume() {
+          runningResumes += 1;
+          return super.resume();
+        }
       },
     });
+    expect(running.unlock()).toBe(true);
+    expect(runningResumes).toBe(0);
     expect(running.play('land')).toBe(true);
     expect(running.play('nope')).toBe(false);
   });

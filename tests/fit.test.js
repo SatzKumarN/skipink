@@ -16,6 +16,53 @@ describe('fitCanvas', () => {
     expect(normal.dpr).toBe(1.5);
     expect(fitCanvas(canvas, { innerWidth: 20, innerHeight: 20 }).dpr).toBe(1);
   });
+
+  it('writes the backing store only when the size or pixel ratio changes it', () => {
+    const writes = [];
+    const canvas = {
+      style: {},
+      width: 0,
+      height: 0,
+    };
+    const track = (key) => {
+      let value = canvas[key];
+      Object.defineProperty(canvas, key, {
+        configurable: true,
+        get: () => value,
+        set: (next) => {
+          writes.push([key, next]);
+          value = next;
+        },
+      });
+    };
+    track('width');
+    track('height');
+
+    fitCanvas(canvas, { devicePixelRatio: 2, innerWidth: 800, innerHeight: 600 });
+    expect(writes).toEqual([['width', 1600], ['height', 1200]]);
+    writes.length = 0;
+
+    const held = fitCanvas(canvas, { devicePixelRatio: 2, innerWidth: 800, innerHeight: 600 });
+    expect(held).toEqual({ dpr: 2, w: 800, h: 600 });
+    expect(writes).toEqual([]);
+    expect(canvas.style).toEqual({ width: '800px', height: '600px' });
+
+    fitCanvas(canvas, { devicePixelRatio: 2, innerWidth: 800.4, innerHeight: 600 });
+    expect(writes).toEqual([]);
+    expect(canvas.style.width).toBe('800.4px');
+    writes.length = 0;
+
+    fitCanvas(canvas, { devicePixelRatio: 2, innerWidth: 801, innerHeight: 600 });
+    expect(writes).toEqual([['width', 1602]]);
+    writes.length = 0;
+
+    fitCanvas(canvas, { devicePixelRatio: 2, innerWidth: 801, innerHeight: 601 });
+    expect(writes).toEqual([['height', 1202]]);
+    writes.length = 0;
+
+    fitCanvas(canvas, { devicePixelRatio: 1, innerWidth: 801, innerHeight: 601 });
+    expect(writes).toEqual([['width', 801], ['height', 601]]);
+  });
 });
 
 describe('camera', () => {

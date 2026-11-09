@@ -6,6 +6,8 @@ import { mockContext } from './helpers/mockContext.js';
 
 afterEach(() => {
   document.body.innerHTML = '';
+  delete window.AudioContext;
+  delete window.webkitAudioContext;
 });
 
 function harness(overrides = {}) {
@@ -186,6 +188,34 @@ describe('startGame', () => {
     game = startGame(box.env);
     box.queued.shift()(1000);
     expect(box.queued).toHaveLength(0);
+  });
+
+  it('creates and resumes audio inside the tap or key, not the first frame', () => {
+    const box = harness();
+    delete box.env.audio;
+    let constructed = 0;
+    let resumes = 0;
+    window.AudioContext = class {
+      constructor() {
+        constructed += 1;
+        this.state = 'suspended';
+      }
+
+      resume() {
+        resumes += 1;
+      }
+    };
+    const game = startGame(box.env);
+    box.queued.shift()(1000);
+    expect(constructed).toBe(0);
+    expect(resumes).toBe(0);
+    box.button.dispatchEvent(new PointerEvent('pointerdown', { button: 0, cancelable: true }));
+    expect(constructed).toBe(1);
+    expect(resumes).toBe(1);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyJ', cancelable: true }));
+    expect(constructed).toBe(1);
+    expect(resumes).toBe(2);
+    game.stop();
   });
 
   it('refuses a canvas that cannot draw', () => {

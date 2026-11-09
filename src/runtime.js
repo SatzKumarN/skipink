@@ -32,6 +32,7 @@ export function startGame(env) {
   let pressed = false;
   const reduced = prefersReducedMotion(env);
   const unbind = bindControls(button, env.window, () => {
+    audio.unlock?.();
     pressed = true;
   });
   let last = env.now();
@@ -49,7 +50,6 @@ export function startGame(env) {
     });
     const speed = state.phase === 'playing'
       ? angularVelocity(
-        state.mood,
         ropeProgress(state).u,
         state.nextContact - state.prevContact,
       )
