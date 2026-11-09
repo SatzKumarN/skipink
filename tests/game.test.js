@@ -125,10 +125,45 @@ describe('a run', () => {
     state = press(state).state;
     expect(press(state).events).toEqual([]);
     expect(press(state).state).toBe(state);
-    const landed = seek(state, state.jump.start + AIRTIME + 0.02);
+    const fair = seek(state, state.jump.start + AIRTIME + 0.02);
+    expect(fair.state.jump).toEqual({ start: state.jump.start });
+    expect(fair.state.landedAt).toBeCloseTo(state.jump.start + AIRTIME);
+    expect(press(fair.state).events).toEqual(['jump']);
+    const landed = seek(state, state.jump.start + AIRTIME + GRACE + 0.02);
     expect(landed.state.jump).toBeNull();
     expect(landed.state.landedAt).toBeCloseTo(state.jump.start + AIRTIME);
     expect(press(landed.state).events).toEqual(['jump']);
+  });
+
+  it('keeps a jump fair through the grace window at 60 fps', () => {
+    const dt = 1 / 60;
+    const begin = press(createState()).state;
+    const contact = begin.nextContact;
+
+    function jumpEarly(early) {
+      let state = seek(begin, contact - early).state;
+      state = press(state).state;
+      const events = [];
+      while (state.time < contact + dt && state.phase === 'playing') {
+        const result = step(state, dt);
+        state = result.state;
+        events.push(...result.events);
+        if (events.includes('skip') || events.includes('miss')) break;
+      }
+      return { state, events };
+    }
+
+    for (const early of [0.284, 0.3, AIRTIME + GRACE]) {
+      const fair = jumpEarly(early);
+      expect(fair.events).toContain('skip');
+      expect(fair.state.phase).toBe('playing');
+      expect(fair.state.score).toBe(1);
+    }
+
+    const early = jumpEarly(AIRTIME + GRACE + 0.05);
+    expect(early.events).toContain('miss');
+    expect(early.state.phase).toBe('over');
+    expect(early.state.score).toBe(0);
   });
 
   it('keeps the best and crowns a higher count', () => {

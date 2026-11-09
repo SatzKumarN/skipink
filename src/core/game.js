@@ -127,8 +127,10 @@ export function step(state, dt) {
     }
   }
 
-  if (next.jump && next.time > next.jump.start + AIRTIME) {
+  if (next.jump && next.time > next.jump.start + AIRTIME + GRACE) {
     next = { ...next, landedAt: next.jump.start + AIRTIME, jump: null };
+  } else if (next.jump && next.time > next.jump.start + AIRTIME) {
+    next = { ...next, landedAt: next.jump.start + AIRTIME };
   }
 
   return { state: next, events };
