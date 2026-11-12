@@ -91,8 +91,9 @@ describe('copy', () => {
     expect(hintFor(counting, 0)).toBe('');
     const playing = at(0.1);
     expect(hintFor(ready, 0)).toBe('tap to start');
-    expect(hintFor(playing, 0)).toBe('watch the rope');
+    expect(hintFor(playing, 0)).toBe('jump as it swings under');
     expect(hintFor({ ...playing, score: 2 }, 0)).toBe('');
+    expect(hintFor({ ...playing, best: 3 }, 0)).toBe('');
     expect(hintFor({ ...playing, phase: 'over' }, 1)).toBe('tap to start');
     expect(hintFor({ ...playing, phase: 'over' }, 0.2)).toBe('');
     expect(hintPulse(0.25, false)).toBe(1);
@@ -140,9 +141,14 @@ describe('viewModel', () => {
     const quiet = viewModel(createState(), { clock: Number.NaN });
     expect(quiet.angle).toBeGreaterThan(0);
 
+    const firstSwing = viewModel(at(0.2));
+    expect(firstSwing.hint).toBe('jump as it swings under');
+    expect(firstSwing.hintGlow).toBe(1);
+
     let state = at(0.2);
     state = { ...state, skippedAt: state.time - 0.02, best: 4 };
     const live = viewModel(state, { clock: 3 });
+    expect(live.hint).toBe('');
     expect(live.pose).toBe('stand');
     expect(live.sheet).toBeLessThan(1);
     expect(viewModel(state, { reducedMotion: true }).sheet).toBe(0);

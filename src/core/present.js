@@ -84,7 +84,9 @@ export function hintPulse(clock, reducedMotion) {
 
 export function hintFor(state, blot) {
   if (state.phase === 'ready') return 'tap to start';
-  if (state.phase === 'playing' && state.score === 0) return 'watch the rope';
+  if (state.phase === 'playing' && state.score === 0 && state.best === 0) {
+    return 'jump as it swings under';
+  }
   if (state.phase === 'over' && blot >= 1) return 'tap to start';
   return '';
 }
