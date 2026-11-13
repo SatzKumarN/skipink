@@ -1,7 +1,8 @@
 import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
-
-const INK = '"Simple Inkdrop", Georgia, serif';
 import { camera } from './fit.js';
+
+const BRUSH = '"Caveat Brush", Georgia, serif';
+const PEN = '"Kalam", Georgia, serif';
 
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 
@@ -340,20 +341,20 @@ function drawPencil(ctx, vm) {
 
 function drawScore(ctx, vm) {
   ctx.textAlign = 'right';
-  ctx.font = `72px ${INK}`;
+  ctx.font = `72px ${BRUSH}`;
   ctx.fillStyle = COLOR.cinnabar;
   ctx.fillText(String(vm.score), 820, 128);
-  ctx.font = `20px ${INK}`;
+  ctx.font = `20px ${PEN}`;
   ctx.fillStyle = COLOR.pencil;
   ctx.fillText('skips', 820, 156);
   if (vm.showBest) {
-    ctx.font = `18px ${INK}`;
+    ctx.font = `18px ${PEN}`;
     ctx.fillStyle = COLOR.pencil;
     ctx.fillText(`best ${vm.best}`, 820, 182);
   }
   if (vm.crowned) {
     ctx.fillStyle = COLOR.cinnabar;
-    ctx.font = `20px ${INK}`;
+    ctx.font = `20px ${PEN}`;
     ctx.fillText('new', 748, 156);
   }
 }
@@ -445,7 +446,7 @@ function drawCountdown(ctx, count, phone) {
   ctx.fillStyle = COLOR.cinnabar;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = `${phone ? 96 : 128}px ${INK}`;
+  ctx.font = `${phone ? 96 : 128}px ${BRUSH}`;
   ctx.fillText(String(count), FIGURE.x, phone ? 188 : 236);
   ctx.restore();
 }
@@ -456,7 +457,7 @@ function drawTitle(ctx, sheet, phone) {
   const inkWord = 'ink';
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left';
-  ctx.font = `${spot.size}px ${INK}`;
+  ctx.font = `${spot.size}px ${BRUSH}`;
   const skipWidth = ctx.measureText(skip).width;
   const inkWidth = ctx.measureText(inkWord).width;
   const start = spot.x - (skipWidth + inkWidth) / 2;
@@ -510,16 +511,16 @@ function drawRecap(ctx, vm, title, sheet, phone) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = COLOR.cinnabar;
-  ctx.font = `${phone ? 52 : 64}px ${INK}`;
+  ctx.font = `${phone ? 52 : 64}px ${BRUSH}`;
   ctx.fillText(String(vm.recap.score), title.x, title.y + scoreDrop);
   if (vm.recap.best > 0) {
     ctx.fillStyle = COLOR.pencil;
-    ctx.font = `${phone ? 22 : 28}px ${INK}`;
+    ctx.font = `${phone ? 22 : 28}px ${PEN}`;
     ctx.fillText(`best ${vm.recap.best}`, title.x, title.y + bestDrop);
   }
   if (vm.recap.crowned) {
     ctx.fillStyle = COLOR.cinnabar;
-    ctx.font = `22px ${INK}`;
+    ctx.font = `22px ${PEN}`;
     ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
   }
   ctx.restore();
@@ -550,24 +551,24 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
   const x = mix(fromX, title.x, ease);
   const scoreY = mix(128, title.y + scoreDrop, ease);
   ctx.fillStyle = COLOR.cinnabar;
-  ctx.font = `${mix(72, phone ? 52 : 64, ease)}px ${INK}`;
+  ctx.font = `${mix(72, phone ? 52 : 64, ease)}px ${BRUSH}`;
   ctx.fillText(String(vm.score), x, scoreY);
   if (t < 0.65) {
     ctx.globalAlpha = 1 - t / 0.65;
     ctx.fillStyle = COLOR.pencil;
-    ctx.font = `20px ${INK}`;
+    ctx.font = `20px ${PEN}`;
     ctx.fillText('skips', x, mix(156, title.y + (phone ? 100 : 140), ease));
   }
   if (vm.showBest) {
     ctx.globalAlpha = 1;
     ctx.fillStyle = COLOR.pencil;
-    ctx.font = `${mix(18, phone ? 22 : 28, ease)}px ${INK}`;
+    ctx.font = `${mix(18, phone ? 22 : 28, ease)}px ${PEN}`;
     ctx.fillText(`best ${vm.best}`, x, mix(182, title.y + bestDrop, ease));
   }
   if (vm.crowned) {
     ctx.globalAlpha = ease;
     ctx.fillStyle = COLOR.cinnabar;
-    ctx.font = `22px ${INK}`;
+    ctx.font = `22px ${PEN}`;
     ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
   }
   ctx.restore();
@@ -602,7 +603,7 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.globalAlpha = Number.isFinite(vm.hintGlow) ? vm.hintGlow : 1;
     ctx.fillStyle = COLOR.pencil;
     const tap = vm.hint === 'tap to start';
-    ctx.font = `${tap ? 12 + sheet * 2 : 22 + sheet * 8}px ${INK}`;
+    ctx.font = `${tap ? 12 + sheet * 2 : 22 + sheet * 8}px ${PEN}`;
     if (sheet > 0.45) {
       ctx.textAlign = 'center';
       const hintY = vm.phase === 'over' ? title.y + (phone ? 168 : 232) : title.y + (phone ? 64 : 78);

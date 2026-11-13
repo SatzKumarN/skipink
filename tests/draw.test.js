@@ -4,6 +4,17 @@ import { BOTTOM, TOP } from '../src/core/rope.js';
 import { drawScene } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
 
+const BRUSH = '"Caveat Brush", Georgia, serif';
+const PEN = '"Kalam", Georgia, serif';
+
+function fontFor(ctx, text) {
+  const index = ctx.calls.findIndex((call) => call[0] === 'fillText' && call[1] === text);
+  for (let i = index - 1; i >= 0; i -= 1) {
+    if (ctx.calls[i][0] === 'set' && ctx.calls[i][1] === 'font') return ctx.calls[i][2];
+  }
+  return '';
+}
+
 function scene(overrides = {}) {
   return {
     phase: 'playing',
@@ -237,5 +248,29 @@ describe('drawScene', () => {
     }));
     const spot = (painted) => painted.calls.find((call) => call[0] === 'ellipse');
     expect(spot(other)[1]).not.toBe(spot(ctx)[1]);
+  });
+
+  it('sets Caveat Brush on the ink marks and Kalam on the notes', () => {
+    const playing = mockContext();
+    drawScene(playing, 900, 640, scene({ hint: 'jump as it swings under' }));
+    expect(fontFor(playing, 'skip')).toContain(BRUSH);
+    expect(fontFor(playing, 'ink')).toContain(BRUSH);
+    expect(fontFor(playing, '4')).toContain(BRUSH);
+    expect(fontFor(playing, 'skips')).toContain(PEN);
+    expect(fontFor(playing, 'best 2')).toContain(PEN);
+    expect(fontFor(playing, 'new')).toContain(PEN);
+    expect(fontFor(playing, 'jump as it swings under')).toContain(PEN);
+
+    const counting = mockContext();
+    drawScene(counting, 900, 640, scene({
+      phase: 'count',
+      sheet: 1,
+      score: 0,
+      showScore: false,
+      hint: '',
+      count: 3,
+    }));
+    expect(fontFor(counting, '3')).toContain(BRUSH);
+    expect(fontFor(counting, 'skip')).toContain(BRUSH);
   });
 });

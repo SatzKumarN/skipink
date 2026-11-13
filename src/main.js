@@ -1,10 +1,15 @@
 import { boot } from './boot.js';
-import inkdropUrl from './fonts/SimpleInkdrop.woff';
+import brushUrl from './fonts/caveat-brush/CaveatBrush-Regular.ttf';
+import penUrl from './fonts/kalam/Kalam-Regular.ttf';
 
-const face = new FontFace('Simple Inkdrop', `url(${inkdropUrl})`);
-face.load()
-  .then((loaded) => {
+function loadFace(family, url) {
+  const face = new FontFace(family, `url(${url})`);
+  return face.load().then((loaded) => {
     document.fonts.add(loaded);
-  })
-  .catch(() => {})
-  .finally(() => boot());
+  });
+}
+
+Promise.allSettled([
+  loadFace('Caveat Brush', brushUrl),
+  loadFace('Kalam', penUrl),
+]).finally(() => boot());
