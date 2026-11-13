@@ -15,7 +15,7 @@ Space, J, the up arrow, a click, or a tap jumps. The same button starts a fresh 
 
 ## Fonts
 
-The page used to draw every word in Simple Inkdrop. That face is free for personal use only, so the build no longer ships it. Two SIL Open Font License 1.1 families replace it. The TrueType files are the official releases, unchanged, and each license sits beside its font.
+The page draws with two SIL Open Font License 1.1 families. The TrueType files are the official releases, unchanged, and each license sits beside its font.
 
 Caveat Brush draws the wordmark, the 3-2-1 countdown, and the score. Copyright 2015 Google Inc. Designed by Impallari Type. License: `src/fonts/caveat-brush/OFL.txt`.
 
