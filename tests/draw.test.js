@@ -224,8 +224,17 @@ describe('drawScene', () => {
       dress: DRESSES[1],
     }));
     expect(ctx.calls.some((call) => call[0] === 'setLineDash')).toBe(false);
-    expect(styleWas(ctx, 'fillStyle', DRESSES[1].skirt)).toBe(true);
-    expect(styleWas(ctx, 'fillStyle', DRESSES[1].deep)).toBe(true);
+    expect(styleWas(ctx, 'fillStyle', COLOR.ink)).toBe(true);
+    const fading = mockContext();
+    drawScene(fading, 900, 640, scene({
+      blot: 0.2,
+      pencil: false,
+      fleck: 0,
+      pose: 'stumble',
+      dress: DRESSES[1],
+    }));
+    expect(styleWas(fading, 'fillStyle', DRESSES[1].skirt)).toBe(true);
+    expect(styleWas(fading, 'fillStyle', DRESSES[1].deep)).toBe(true);
     drawScene(mockContext(), 800, 600, scene({
       blot: 0.35,
       splash: 0,
@@ -235,7 +244,8 @@ describe('drawScene', () => {
       dress: DRESSES[3],
     }));
     expect(ctx.calls.some((call) => call[0] === 'fillText' && call[1] === 'new')).toBe(false);
-    expect(ctx.calls.filter((call) => call[0] === 'ellipse').length).toBeGreaterThan(30);
+    expect(ctx.calls.filter((call) => call[0] === 'ellipse').length).toBeGreaterThan(16);
+    expect(ctx.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
     const other = mockContext();
     drawScene(other, 800, 600, scene({
       blot: 1,
@@ -272,5 +282,42 @@ describe('drawScene', () => {
     }));
     expect(fontFor(counting, '3')).toContain(BRUSH);
     expect(fontFor(counting, 'skip')).toContain(BRUSH);
+  });
+
+  it('bursts a miss into a black ink splash', () => {
+    const ctx = mockContext();
+    drawScene(ctx, 900, 640, scene({
+      blot: 1,
+      splash: 0.37,
+      lift: 0,
+      fleck: 0,
+      pencil: false,
+      pose: 'stumble',
+      hint: '',
+      showScore: false,
+    }));
+    const marks = ctx.calls.filter((call) => call[0] === 'ellipse');
+    const xs = marks.map((call) => call[1]);
+    const ys = marks.map((call) => call[2]);
+    expect(marks.length).toBeGreaterThan(16);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(140);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(100);
+    expect(marks.some((call) => call[3] < 3 && call[4] < 3)).toBe(true);
+    expect(ctx.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
+    expect(styleWas(ctx, 'fillStyle', COLOR.ink)).toBe(true);
+    expect(styleWas(ctx, 'fillStyle', COLOR.paper)).toBe(true);
+    const flying = mockContext();
+    drawScene(flying, 900, 640, scene({
+      blot: 0.12,
+      splash: 0.37,
+      lift: 0,
+      fleck: 0,
+      pencil: false,
+      pose: 'stumble',
+      hint: '',
+      showScore: false,
+    }));
+    const early = flying.calls.find((call) => call[0] === 'ellipse');
+    expect(early[1]).not.toBe(marks[0][1]);
   });
 });

@@ -382,48 +382,113 @@ function inkRand(seed) {
   };
 }
 
-function splashDrops(seed) {
+function inkSplash(seed) {
   const rand = inkRand(Number.isFinite(seed) ? seed : 0.5);
-  return Array.from({ length: 42 }, (_, index) => {
-    const angle = rand() * Math.PI * 2;
-    const reach = 52 + rand() * 130;
-    const start = 8 + rand() * 22;
-    const sx = Math.cos(angle) * start;
-    const sy = -62 + Math.sin(angle) * start;
-    let ex = Math.cos(angle) * reach;
-    let ey = -62 + Math.sin(angle) * reach;
-    if (ey > -36) {
-      ey = -36 - rand() * (30 + rand() * 90);
-      ex += (rand() - 0.5) * 80;
-    }
-    const radius = index < 10 ? 8 + rand() * 8 : 1.6 + rand() * 3.2;
-    return [sx, sy, ex, ey, radius, index % 2];
+  const spin = rand() * Math.PI * 2;
+  const kick = (rand() - 0.5) * 18;
+  const arms = Array.from({ length: 14 }, (_, index) => {
+    const turn = spin + (index / 14) * Math.PI * 2 + (rand() - 0.5) * 0.42;
+    const down = Math.sin(turn) > 0.12;
+    const long = index % 3 === 0;
+    const reach = (down ? 0.64 : 1) * (
+      long ? 156 + rand() * 46 : index % 2 === 0 ? 68 + rand() * 18 : 102 + rand() * 22
+    );
+    const base = long ? 11 + rand() * 4 : 20 + rand() * 8;
+    const head = long ? 7.5 + rand() * 3.5 : 14 + rand() * 5;
+    const bend = (rand() - 0.5) * (long ? 34 : 14);
+    return [turn, reach, base, head, bend];
   });
+  const dots = Array.from({ length: 24 }, (_, index) => {
+    const turn = index === 0 ? 0.3 + rand() * 0.9 : rand() * Math.PI * 2;
+    const down = index % 4 === 0;
+    const reach = (down ? 0.55 : 1) * (index % 7 === 0 ? 88 + rand() * 36 : 40 + rand() * 78);
+    const radius = index % 7 === 0 ? 2.6 + rand() * 1.5 : index % 5 === 0 ? 1.7 + rand() * 0.8 : 1.05 + rand() * 0.65;
+    return [turn, reach, radius];
+  });
+  const waves = Array.from({ length: 16 }, () => rand());
+  const holes = [
+    [10 + rand() * 8, -8 + rand() * 5, 3.6 + rand() * 1.4, 5 + rand() * 1.3],
+    [-4 + rand() * 8, 5 + rand() * 4, 1.8 + rand() * 0.8, 2.5 + rand() * 0.9],
+  ];
+  return { kick, arms, dots, waves, holes };
+}
+
+function fillEllipse(ctx, x, y, rx, ry, rotation) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, Math.max(1, rx), Math.max(1, ry), rotation, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function fillInkCore(ctx, x, y, radius, waves) {
+  const steps = waves.length;
+  const pts = waves.map((wave, index) => {
+    const a = (index / steps) * Math.PI * 2;
+    const wobble = 0.9 + wave * 0.16;
+    return [x + Math.cos(a) * radius * wobble, y + Math.sin(a) * radius * wobble * 0.94];
+  });
+  ctx.beginPath();
+  ctx.moveTo((pts[0][0] + pts[steps - 1][0]) / 2, (pts[0][1] + pts[steps - 1][1]) / 2);
+  for (let i = 0; i < steps; i += 1) {
+    const next = pts[(i + 1) % steps];
+    ctx.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + next[0]) / 2, (pts[i][1] + next[1]) / 2);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function fillSplatArm(ctx, x, y, angle, length, base, head, bend) {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle);
+  const px = -s;
+  const py = c;
+  const tipX = x + c * length + px * bend * 0.3;
+  const tipY = y + s * length + py * bend * 0.3;
+  const midX = x + c * length * 0.46 + px * bend;
+  const midY = y + s * length * 0.46 + py * bend;
+  const neck = head * 0.96;
+  ctx.beginPath();
+  ctx.moveTo(x + px * base, y + py * base);
+  ctx.quadraticCurveTo(midX + px * base * 0.72, midY + py * base * 0.72, tipX + px * neck, tipY + py * neck);
+  ctx.lineTo(tipX - px * neck, tipY - py * neck);
+  ctx.quadraticCurveTo(midX - px * base * 0.62, midY - py * base * 0.62, x - px * base, y - py * base);
+  ctx.closePath();
+  ctx.fill();
+  fillEllipse(ctx, tipX, tipY, head, head * 0.94, angle);
 }
 
 function drawSplash(ctx, vm) {
   const t = Math.min(1, Math.max(0, vm.blot));
-  const colors = dressColors(vm);
-  const ease = 1 - (1 - t) * (1 - t);
-  const originY = FIGURE.ground - vm.lift * 46;
+  const grow = 1 - (1 - Math.min(1, t / 0.55)) ** 2;
+  const splash = inkSplash(vm.splash);
+  const ox = FIGURE.x + splash.kick;
+  const oy = FIGURE.ground - vm.lift * 46 - 48;
   ctx.save();
-  splashDrops(vm.splash).forEach(([sx, sy, ex, ey, radius, deep]) => {
-    const x = FIGURE.x + sx + (ex - sx) * ease;
-    const y = originY + sy + (ey - sy) * ease;
-    const stretch = 1 + (1 - t) * 1.4;
-    ctx.globalAlpha = Math.min(1, t / 0.18) * 0.9;
-    ctx.fillStyle = deep ? colors.deep : colors.skirt;
-    ctx.beginPath();
-    ctx.ellipse(
-      x,
-      y,
-      Math.max(1, radius * (0.45 + 0.55 * ease) * stretch),
-      Math.max(1, radius * (0.45 + 0.55 * ease)),
-      Math.atan2(ey - sy, ex - sx),
-      0,
-      Math.PI * 2,
+  ctx.globalAlpha = Math.min(1, t / 0.08) * ctx.globalAlpha;
+  ctx.fillStyle = COLOR.ink;
+  splash.dots.forEach(([angle, reach, radius]) => {
+    fillEllipse(
+      ctx,
+      ox + Math.cos(angle) * reach * grow,
+      oy + Math.sin(angle) * reach * grow,
+      radius,
+      radius * 0.92,
+      angle,
     );
-    ctx.fill();
+  });
+  splash.arms.forEach(([angle, reach, base, head, bend]) => {
+    fillSplatArm(ctx, ox, oy, angle, reach * grow, base, head, bend * grow);
+  });
+  fillInkCore(ctx, ox, oy, 62 * (0.45 + 0.55 * grow), splash.waves);
+  ctx.fillStyle = COLOR.paper;
+  splash.holes.forEach(([dx, dy, rx, ry]) => {
+    fillEllipse(
+      ctx,
+      ox + dx * grow,
+      oy + dy * grow,
+      Math.max(1, rx * grow),
+      Math.max(1, ry * grow),
+      0.4,
+    );
   });
   ctx.restore();
 }
