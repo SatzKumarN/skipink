@@ -472,32 +472,8 @@ function drawBallerinaHead(ctx, spec) {
   ctx.ellipse(sx + 2.2, hy - r - 2.2, 5.2, 4.5, 0.2, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(sx - 1, hy - r + 2);
-  ctx.quadraticCurveTo(sx + r * 0.85, hy - r * 0.15, sx + r * 0.72, hy + r * 0.35);
-  ctx.quadraticCurveTo(sx + r * 0.35, hy - r * 0.05, sx + 1, hy - r + 3);
-  ctx.closePath();
-  ctx.fill();
-  ctx.beginPath();
   ctx.arc(sx, hy, r, 0, Math.PI * 2);
-  ctx.fillStyle = COLOR.paper;
   ctx.fill();
-  ctx.lineWidth = 2.2;
-  ctx.strokeStyle = COLOR.ink;
-  ctx.stroke();
-  ink(ctx, 1.7, (pen) => {
-    pen.arc(sx - r + 0.2, hy + 1, 2.5, Math.PI * 0.55, Math.PI * 1.45);
-  });
-  ink(ctx, 1.7, (pen) => {
-    pen.arc(sx + r - 0.2, hy + 1, 2.5, -Math.PI * 0.45, Math.PI * 0.45);
-  });
-  ink(ctx, 1.6, (pen) => {
-    pen.moveTo(sx - 6.2, hy - 0.4);
-    pen.quadraticCurveTo(sx - 3.4, hy - 3.1, sx - 1.1, hy - 0.2);
-    pen.moveTo(sx + 1.5, hy - 0.2);
-    pen.quadraticCurveTo(sx + 3.8, hy - 3.1, sx + 6.4, hy - 0.4);
-    pen.moveTo(sx - 2.6, hy + 4.2);
-    pen.quadraticCurveTo(sx, hy + 6.6, sx + 2.6, hy + 4.2);
-  });
   const heart = bodiceHeart(spec);
   ink(ctx, 2.1, (pen) => {
     pen.moveTo(sx, hy + r - 1);
@@ -609,19 +585,7 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, -46, 9, 0, Math.PI * 2);
-    ctx.fillStyle = COLOR.paper;
     ctx.fill();
-    ctx.strokeStyle = tone;
-    ctx.stroke();
-    ctx.fillStyle = tone;
-    ctx.beginPath();
-    ctx.moveTo(-4, -44);
-    ctx.quadraticCurveTo(-2.2, -46, -0.6, -43.6);
-    ctx.moveTo(1, -43.6);
-    ctx.quadraticCurveTo(2.6, -46, 4.4, -44);
-    ctx.moveTo(-1.8, -40.5);
-    ctx.quadraticCurveTo(0, -38.8, 1.8, -40.5);
-    ctx.stroke();
     ctx.beginPath();
     ctx.ellipse(1.4, -57, 4.4, 3.7, 0.2, 0, Math.PI * 2);
     ctx.fill();
