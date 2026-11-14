@@ -251,30 +251,41 @@ function gripsWorld(vm) {
   return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
 }
 
-function torsoOval(spec) {
+function torsoHeart(spec) {
   const [, hy] = spec.head;
   const [sx, sy] = spec.skirt;
-  const top = hy + 12;
-  const bottom = sy + 2;
-  const ry = Math.max(8, (bottom - top) / 2);
+  const top = hy + 1;
+  const bottom = sy + 1;
   return {
     x: sx,
-    y: top + ry,
-    rx: ry * 0.58,
-    ry,
+    top,
+    bottom,
+    half: Math.max(15, (bottom - top) * 0.38),
   };
+}
+
+function heartPath(ctx, heart) {
+  const { x, top, bottom, half } = heart;
+  const lobe = top + half * 0.62;
+  ctx.beginPath();
+  ctx.moveTo(x, bottom);
+  ctx.quadraticCurveTo(x - half * 0.2, bottom - (bottom - lobe) * 0.45, x - half, lobe);
+  ctx.quadraticCurveTo(x - half * 1.05, top - half * 0.08, x - half * 0.42, top + half * 0.22);
+  ctx.quadraticCurveTo(x - half * 0.08, top + half * 0.12, x, top + half * 0.16);
+  ctx.quadraticCurveTo(x + half * 0.08, top + half * 0.12, x + half * 0.42, top + half * 0.22);
+  ctx.quadraticCurveTo(x + half * 1.05, top - half * 0.08, x + half, lobe);
+  ctx.quadraticCurveTo(x + half * 0.2, bottom - (bottom - lobe) * 0.45, x, bottom);
+  ctx.closePath();
 }
 
 function armRoot(spec, character) {
   if (character === 'ballerina') {
-    const oval = torsoOval(spec);
-    return [-1, 1].map((dir) => {
-      const turn = dir < 0 ? Math.PI + 0.7 : -0.7;
-      return {
-        x: oval.x + Math.cos(turn) * oval.rx,
-        y: oval.y + Math.sin(turn) * oval.ry,
-      };
-    });
+    const heart = torsoHeart(spec);
+    const y = heart.top + heart.half * 0.7;
+    return [
+      { x: heart.x - heart.half, y },
+      { x: heart.x + heart.half, y },
+    ];
   }
   const body = bodyTriangle(spec);
   return [
@@ -285,11 +296,11 @@ function armRoot(spec, character) {
 
 function drawBody(ctx, spec, colors, character) {
   ctx.lineWidth = 2.4;
+  ctx.lineJoin = 'round';
   ctx.strokeStyle = COLOR.ink;
   if (character === 'ballerina') {
-    const oval = torsoOval(spec);
-    ctx.beginPath();
-    ctx.ellipse(oval.x, oval.y, oval.rx, oval.ry, 0, 0, Math.PI * 2);
+    const heart = torsoHeart(spec);
+    heartPath(ctx, heart);
     ctx.fillStyle = colors.deep;
     ctx.fill();
     ctx.stroke();
@@ -551,8 +562,7 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.globalAlpha = locked ? 0.2 : 0.35;
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
-    ctx.beginPath();
-    ctx.ellipse(0, -26, 9, 14, 0, 0, Math.PI * 2);
+    heartPath(ctx, { x: 0, top: -49, bottom: -12, half: 16 });
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.stroke();
