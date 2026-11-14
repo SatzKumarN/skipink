@@ -73,6 +73,7 @@ describe('copy', () => {
   it('names the button and the pencil note for each phase', () => {
     expect(buttonLabel('menu', 0)).toBe('Choose');
     expect(buttonLabel('levels', 0)).toBe('Choose');
+    expect(buttonLabel('characters', 0)).toBe('Choose');
     expect(buttonLabel('count', 0, 3)).toBe('3');
     expect(buttonLabel('count', 0, null)).toBe('');
     expect(buttonLabel('over', 0.2)).toBe('Wait');
@@ -113,8 +114,10 @@ describe('viewModel', () => {
     const ready = viewModel(createState());
     expect(ready.hint).toBe('');
     expect(ready.sheet).toBe(1);
-    expect(ready.menu).toHaveLength(2);
+    expect(ready.menu).toHaveLength(3);
     expect(ready.menu[0].selected).toBe(true);
+    expect(ready.menu[2].id).toBe('characters');
+    expect(ready.character).toBe('bun');
     expect(ready.hintGlow).toBe(1);
     expect(viewModel(createState(), { clock: 0.25, reducedMotion: true }).hintGlow).toBe(1);
     expect(ready.showScore).toBe(false);
@@ -134,6 +137,18 @@ describe('viewModel', () => {
     expect(levels.levels[2].locked).toBe(false);
     expect(levels.levels[3].locked).toBe(true);
     expect(levels.levels[1].selected).toBe(true);
+    const characters = viewModel({
+      ...createState(0, 0, 'ballerina'),
+      phase: 'characters',
+      focus: 1,
+    });
+    expect(characters.characters).toHaveLength(3);
+    expect(characters.characters[1].id).toBe('ballerina');
+    expect(characters.characters[1].selected).toBe(true);
+    expect(characters.characters[1].done).toBe(true);
+    expect(characters.characters[0].done).toBe(false);
+    expect(characters.sheet).toBe(1);
+    expect(hintFor({ phase: 'characters' }, 0)).toBe('');
     const countView = viewModel(press(createState()).state);
     expect(countView.count).toBe(3);
     expect(countView.label).toBe('3');

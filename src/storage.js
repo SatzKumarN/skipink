@@ -1,4 +1,12 @@
-import { LEGACY_STORAGE_KEY, LEVEL_STORAGE_KEY, LEVELS, STORAGE_KEY } from './config.js';
+import {
+  CHARACTERS,
+  CHARACTER_STORAGE_KEY,
+  DEFAULT_CHARACTER,
+  LEGACY_STORAGE_KEY,
+  LEVEL_STORAGE_KEY,
+  LEVELS,
+  STORAGE_KEY,
+} from './config.js';
 
 function wholeCount(raw) {
   const value = Number(raw);
@@ -10,6 +18,11 @@ function clampCleared(raw) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value < 0) return 0;
   return Math.min(LEVELS.length, Math.floor(value));
+}
+
+export function resolveCharacter(id) {
+  const key = typeof id === 'string' ? id : '';
+  return CHARACTERS.some((choice) => choice.id === key) ? key : DEFAULT_CHARACTER;
 }
 
 export function readBest(storage) {
@@ -61,4 +74,22 @@ export function writeCleared(storage, cleared) {
 
 export function unlockedLevel(cleared) {
   return Math.min(LEVELS.length, clampCleared(cleared) + 1);
+}
+
+export function readCharacter(storage) {
+  try {
+    return resolveCharacter(storage.getItem(CHARACTER_STORAGE_KEY));
+  } catch {
+    return DEFAULT_CHARACTER;
+  }
+}
+
+export function writeCharacter(storage, character) {
+  try {
+    const safe = resolveCharacter(character);
+    storage.setItem(CHARACTER_STORAGE_KEY, safe);
+    return safe;
+  } catch {
+    return DEFAULT_CHARACTER;
+  }
 }

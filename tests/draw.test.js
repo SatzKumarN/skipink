@@ -28,9 +28,18 @@ const LEVELS_SYMBOL = {
   height: 100,
 };
 
+const CHARACTERS_SYMBOL = {
+  complete: true,
+  naturalWidth: 100,
+  naturalHeight: 100,
+  width: 100,
+  height: 100,
+};
+
 setBackArrowArt(BACK_SYMBOL);
 setBrushArt('infinity', INFINITY_SYMBOL);
 setBrushArt('levels', LEVELS_SYMBOL);
+setBrushArt('characters', CHARACTERS_SYMBOL);
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
@@ -235,6 +244,18 @@ describe('drawScene', () => {
         spread: 0,
       }));
     });
+
+    const ballerina = mockContext();
+    drawScene(ballerina, 800, 600, scene({
+      character: 'ballerina',
+      pose: 'stand',
+      pencil: false,
+      fleck: 0,
+      blot: 0,
+      dress: DRESSES[2],
+    }));
+    expect(styleWas(ballerina, 'fillStyle', DRESSES[2].skirt)).toBe(true);
+    expect(ballerina.calls.some((call) => call[0] === 'ellipse')).toBe(true);
   });
 
   it('paints a smudged sheet without the pencil guide', () => {
@@ -328,12 +349,64 @@ describe('drawScene', () => {
           id: 'levels', label: 'levels', index: 1,
           x: 350, y: 380, w: 260, h: 48, selected: false, locked: false,
         },
+        {
+          id: 'characters', label: 'characters', index: 2,
+          x: 350, y: 440, w: 260, h: 48, selected: false, locked: false,
+        },
       ],
     }));
     expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'infinity')).toBe(false);
     expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'levels')).toBe(false);
+    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'characters')).toBe(false);
     expect(menu.calls.some((call) => call[0] === 'drawImage' && call[1] === INFINITY_SYMBOL)).toBe(true);
     expect(menu.calls.some((call) => call[0] === 'drawImage' && call[1] === LEVELS_SYMBOL)).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'drawImage' && call[1] === CHARACTERS_SYMBOL)).toBe(true);
+
+    const characters = mockContext();
+    drawScene(characters, 900, 640, scene({
+      phase: 'characters',
+      sheet: 1,
+      showScore: false,
+      hint: '',
+      characters: [
+        {
+          id: 'bun', label: 'bun', index: 0,
+          x: 300, y: 280, w: 156, h: 140, selected: false, locked: false, done: false,
+        },
+        {
+          id: 'ballerina', label: 'ballerina', index: 1,
+          x: 500, y: 280, w: 156, h: 140, selected: true, locked: false, done: true,
+        },
+        {
+          id: 'back', label: 'back', index: 2,
+          x: 432, y: 440, w: 96, h: 74, selected: false, locked: false,
+        },
+      ],
+    }));
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(true);
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'ballerina')).toBe(true);
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(true);
+    expect(characters.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+
+    const lockedPick = mockContext();
+    drawScene(lockedPick, 390, 844, scene({
+      phase: 'characters',
+      sheet: 1,
+      showScore: false,
+      hint: '',
+      characters: [
+        {
+          id: 'bun', label: 'bun', index: 0,
+          x: 360, y: 220, w: 124, h: 112, selected: true, locked: true, done: false,
+        },
+        {
+          id: 'ballerina', label: 'ballerina', index: 1,
+          x: 500, y: 220, w: 124, h: 112, selected: false, locked: true, done: true,
+        },
+      ],
+    }));
+    expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(true);
+    expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({

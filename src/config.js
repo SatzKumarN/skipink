@@ -8,11 +8,19 @@ export const COUNTDOWN = 3;
 export const STORAGE_KEY = 'skipink-best';
 export const LEGACY_STORAGE_KEY = 'inkskip-best';
 export const LEVEL_STORAGE_KEY = 'skipink-cleared';
+export const CHARACTER_STORAGE_KEY = 'skipink-character';
 
 export const LEVELS = Array.from({ length: 10 }, (_, index) => ({
   id: index + 1,
   goal: (index + 1) * 10,
 }));
+
+export const CHARACTERS = [
+  { id: 'bun', label: 'bun' },
+  { id: 'ballerina', label: 'ballerina' },
+];
+
+export const DEFAULT_CHARACTER = CHARACTERS[0].id;
 
 export const PAGE = { w: 960, h: 640 };
 

@@ -1,6 +1,21 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_STORAGE_KEY, LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
-import { readBest, readCleared, unlockedLevel, writeBest, writeCleared } from '../src/storage.js';
+import {
+  CHARACTER_STORAGE_KEY,
+  DEFAULT_CHARACTER,
+  LEGACY_STORAGE_KEY,
+  LEVEL_STORAGE_KEY,
+  STORAGE_KEY,
+} from '../src/config.js';
+import {
+  readBest,
+  readCharacter,
+  readCleared,
+  resolveCharacter,
+  unlockedLevel,
+  writeBest,
+  writeCharacter,
+  writeCleared,
+} from '../src/storage.js';
 
 function memory(initial) {
   const values = new Map(initial);
@@ -75,5 +90,21 @@ describe('level progress', () => {
     expect(writeCleared({ setItem: () => { throw new Error('blocked'); } }, 3)).toBe(0);
     expect(unlockedLevel(0)).toBe(1);
     expect(unlockedLevel(10)).toBe(10);
+  });
+});
+
+describe('character choice', () => {
+  it('reads and writes a known skipper', () => {
+    expect(resolveCharacter('ballerina')).toBe('ballerina');
+    expect(resolveCharacter('nope')).toBe(DEFAULT_CHARACTER);
+    expect(resolveCharacter(null)).toBe(DEFAULT_CHARACTER);
+    const store = memory([[CHARACTER_STORAGE_KEY, 'ballerina']]);
+    expect(readCharacter(store)).toBe('ballerina');
+    expect(writeCharacter(store, 'bun')).toBe('bun');
+    expect(store.values.get(CHARACTER_STORAGE_KEY)).toBe('bun');
+    expect(writeCharacter(store, 'mystery')).toBe(DEFAULT_CHARACTER);
+    expect(readCharacter({ getItem: () => { throw new Error('blocked'); } })).toBe(DEFAULT_CHARACTER);
+    expect(writeCharacter({ setItem: () => { throw new Error('blocked'); } }, 'ballerina'))
+      .toBe(DEFAULT_CHARACTER);
   });
 });

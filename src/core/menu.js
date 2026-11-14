@@ -1,10 +1,15 @@
-import { LEVELS, PAGE } from '../config.js';
+import { CHARACTERS, LEVELS, PAGE } from '../config.js';
 
 export function menuChoices() {
   return [
     { id: 'infinity', label: 'infinity' },
     { id: 'levels', label: 'levels' },
+    { id: 'characters', label: 'characters' },
   ];
+}
+
+export function characterChoices() {
+  return CHARACTERS.map((choice) => ({ ...choice }));
 }
 
 export function titleAnchor(phone) {
@@ -20,13 +25,14 @@ export function menuZoom(phone) {
 
 export function menuHits(phone) {
   const title = titleAnchor(phone);
-  const w = phone ? 124 : 156;
-  const h = phone ? 112 : 140;
-  const gap = phone ? 16 : 28;
+  const choices = menuChoices();
+  const w = phone ? 100 : 140;
+  const h = phone ? 100 : 128;
+  const gap = phone ? 10 : 18;
   const startY = title.y + (phone ? 24 : 36);
-  const totalW = w * 2 + gap;
+  const totalW = w * choices.length + gap * (choices.length - 1);
   const startX = title.x - totalW / 2;
-  return menuChoices().map((choice, index) => ({
+  return choices.map((choice, index) => ({
     ...choice,
     index,
     x: startX + index * (w + gap),
@@ -70,6 +76,35 @@ export function levelHits(phone) {
     w: phone ? 84 : 96,
     h: phone ? 64 : 74,
   }]);
+}
+
+export function characterHits(phone) {
+  const title = titleAnchor(phone);
+  const choices = characterChoices();
+  const w = phone ? 124 : 156;
+  const h = phone ? 112 : 140;
+  const gap = phone ? 16 : 28;
+  const startY = title.y + (phone ? 18 : 28);
+  const totalW = w * choices.length + gap * (choices.length - 1);
+  const startX = title.x - totalW / 2;
+  const hits = choices.map((choice, index) => ({
+    ...choice,
+    index,
+    x: startX + index * (w + gap),
+    y: startY,
+    w,
+    h,
+  }));
+  hits.push({
+    id: 'back',
+    label: 'back',
+    index: choices.length,
+    x: title.x - (phone ? 42 : 48),
+    y: startY + h + (phone ? 8 : 12),
+    w: phone ? 84 : 96,
+    h: phone ? 64 : 74,
+  });
+  return hits;
 }
 
 export function exitHit(phone) {

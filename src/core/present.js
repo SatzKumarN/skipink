@@ -1,6 +1,7 @@
 import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES } from '../config.js';
+import { resolveCharacter } from '../storage.js';
 import { clamp01 } from './math.js';
-import { exitHit, levelHits, menuHits } from './menu.js';
+import { characterHits, exitHit, levelHits, menuHits } from './menu.js';
 import { idleAngle, ropeProgress } from './rope.js';
 
 export function footClearance(state) {
@@ -55,7 +56,7 @@ export function countDigit(state) {
 }
 
 export function buttonLabel(phase, blot, count) {
-  if (phase === 'menu' || phase === 'levels') return 'Choose';
+  if (phase === 'menu' || phase === 'levels' || phase === 'characters') return 'Choose';
   if (phase === 'count') return count ? String(count) : '';
   if (phase === 'cleared' && blot < 1) return 'Wait';
   if (phase === 'cleared') return 'Levels';
@@ -67,7 +68,14 @@ export function buttonLabel(phase, blot, count) {
 const ZOOM_TIME = 0.7;
 
 export function sheetAmount(state, reducedMotion) {
-  if (state.phase === 'menu' || state.phase === 'levels' || state.phase === 'ready') return 1;
+  if (
+    state.phase === 'menu'
+    || state.phase === 'levels'
+    || state.phase === 'characters'
+    || state.phase === 'ready'
+  ) {
+    return 1;
+  }
   if (state.phase === 'count') return 0;
   if (state.phase === 'playing') {
     return reducedMotion ? 0 : 1 - clamp01(state.time / ZOOM_TIME);
@@ -86,7 +94,7 @@ export function hintPulse(clock, reducedMotion) {
 }
 
 export function hintFor(state, blot) {
-  if (state.phase === 'menu' || state.phase === 'levels') return '';
+  if (state.phase === 'menu' || state.phase === 'levels' || state.phase === 'characters') return '';
   if (state.phase === 'cleared' && blot >= 1) return 'level cleared';
   if (state.phase === 'playing' && state.score === 0 && state.best === 0 && !state.goal) {
     return 'jump as it swings under';
@@ -119,6 +127,25 @@ function levelsView(state, phone) {
       selected: hit.index === state.focus,
       locked: hit.level > state.unlocked,
       done: hit.level <= state.cleared,
+    };
+  });
+}
+
+function charactersView(state, phone) {
+  const active = resolveCharacter(state.character);
+  return characterHits(phone).map((hit) => {
+    if (hit.id === 'back') {
+      return {
+        ...hit,
+        selected: hit.index === state.focus,
+        locked: false,
+      };
+    }
+    return {
+      ...hit,
+      selected: hit.index === state.focus,
+      locked: false,
+      done: hit.id === active,
     };
   });
 }
@@ -158,6 +185,7 @@ export function viewModel(state, options = {}) {
     unlocked: state.unlocked,
     focus: state.focus,
     progress: state.cleared,
+    character: resolveCharacter(state.character),
     won: state.phase === 'cleared',
     score: state.score,
     best: state.best,
@@ -188,6 +216,7 @@ export function viewModel(state, options = {}) {
       || state.phase === 'count',
     menu: state.phase === 'menu' ? menuView(state, phone) : null,
     levels: state.phase === 'levels' ? levelsView(state, phone) : null,
+    characters: state.phase === 'characters' ? charactersView(state, phone) : null,
     exit: showExit ? { ...exitHit(phone), selected: false, locked: false } : null,
   };
 }

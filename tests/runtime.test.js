@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
+import { CHARACTER_STORAGE_KEY, LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
 import { createState, frame } from '../src/core/game.js';
 import { prefersReducedMotion, startGame } from '../src/runtime.js';
 import { mockContext } from './helpers/mockContext.js';
@@ -263,6 +263,40 @@ describe('startGame', () => {
     expect(box.audio.play).toHaveBeenCalledWith('land');
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp', cancelable: true }));
     box.queued.shift()(1116);
+    game.stop();
+  });
+
+  it('restores and saves the chosen character', () => {
+    const box = harness();
+    box.mem.set(CHARACTER_STORAGE_KEY, 'ballerina');
+    let updateImpl = null;
+    box.env.update = (state, dt, input) => {
+      if (updateImpl) return updateImpl(state, dt, input);
+      return frame(state, dt, input);
+    };
+    const game = startGame(box.env);
+    box.queued.shift()(1000);
+    expect(game.getState().character).toBe('ballerina');
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', cancelable: true }));
+    box.queued.shift()(1008);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', cancelable: true }));
+    box.queued.shift()(1016);
+    expect(game.getState().focus).toBe(2);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', cancelable: true }));
+    box.queued.shift()(1024);
+    expect(game.getState().phase).toBe('characters');
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', cancelable: true }));
+    box.queued.shift()(1032);
+    expect(game.getState().phase).toBe('menu');
+    updateImpl = () => ({
+      state: {
+        ...createState(0, 0, 'bun'),
+        phase: 'menu',
+      },
+      events: [],
+    });
+    box.queued.shift()(1048);
+    expect(box.mem.get(CHARACTER_STORAGE_KEY)).toBe('bun');
     game.stop();
   });
 });

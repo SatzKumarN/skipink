@@ -8,8 +8,8 @@ import {
   MAX_FRAME,
   OPENING_SLACK,
 } from '../config.js';
-import { unlockedLevel } from '../storage.js';
-import { exitHit, hitAt, levelHits, menuHits } from './menu.js';
+import { resolveCharacter, unlockedLevel } from '../storage.js';
+import { characterHits, exitHit, hitAt, levelHits, menuHits } from './menu.js';
 import { buildSentence } from './sentence.js';
 
 function safeCleared(cleared) {
@@ -17,7 +17,7 @@ function safeCleared(cleared) {
   return Math.min(LEVELS.length, Math.floor(cleared));
 }
 
-export function createState(best = 0, cleared = 0) {
+export function createState(best = 0, cleared = 0, character = undefined) {
   const safeBest = Number.isFinite(best) && best > 0 ? Math.floor(best) : 0;
   const progress = safeCleared(cleared);
   return {
@@ -27,6 +27,7 @@ export function createState(best = 0, cleared = 0) {
     goal: null,
     cleared: progress,
     unlocked: unlockedLevel(progress),
+    character: resolveCharacter(character),
     focus: 0,
     time: 0,
     score: 0,
@@ -58,6 +59,7 @@ function keepProgress(state) {
     best: state.best,
     cleared: safeCleared(state.cleared),
     dress: state.dress,
+    character: resolveCharacter(state.character),
   };
 }
 
@@ -65,7 +67,7 @@ function openMenu(state) {
   const progress = keepProgress(state);
   return {
     state: {
-      ...createState(progress.best, progress.cleared),
+      ...createState(progress.best, progress.cleared, progress.character),
       dress: progress.dress,
       focus: 0,
     },
@@ -82,10 +84,25 @@ function openLevels(state) {
   );
   return {
     state: {
-      ...createState(progress.best, progress.cleared),
+      ...createState(progress.best, progress.cleared, progress.character),
       phase: 'levels',
       dress: progress.dress,
       focus,
+    },
+    events: [],
+  };
+}
+
+function openCharacters(state) {
+  const progress = keepProgress(state);
+  const choices = characterHits(false).filter((hit) => hit.id !== 'back');
+  const current = choices.findIndex((hit) => hit.id === progress.character);
+  return {
+    state: {
+      ...createState(progress.best, progress.cleared, progress.character),
+      phase: 'characters',
+      dress: progress.dress,
+      focus: current >= 0 ? current : 0,
     },
     events: [],
   };
@@ -97,7 +114,7 @@ function startRun(state) {
   const progress = keepProgress(state);
   return {
     state: {
-      ...createState(progress.best, progress.cleared),
+      ...createState(progress.best, progress.cleared, progress.character),
       phase: 'count',
       mode: state.mode,
       level: state.level,
@@ -124,6 +141,9 @@ function pickMenu(state, input = {}) {
   if (choice.id === 'levels') {
     return openLevels({ ...state, focus: 0 });
   }
+  if (choice.id === 'characters') {
+    return openCharacters(state);
+  }
   return startRun({
     ...state,
     mode: 'infinity',
@@ -148,6 +168,19 @@ function pickLevel(state, input = {}) {
   });
 }
 
+function pickCharacter(state, input = {}) {
+  const hits = characterHits(Boolean(input.phone));
+  const tapped = hitAt(hits, input.x, input.y);
+  const index = tapped ? tapped.index : state.focus;
+  const choice = hits[index];
+  if (!choice) return { state, events: [] };
+  if (choice.id === 'back') return openMenu(state);
+  return openMenu({
+    ...state,
+    character: resolveCharacter(choice.id),
+  });
+}
+
 export function feetUp(jump, contact) {
   if (!jump) return false;
   return contact >= jump.start && contact <= jump.start + AIRTIME + GRACE;
@@ -157,7 +190,7 @@ export function steer(state, delta) {
   const step = Number.isFinite(delta) ? Math.sign(delta) : 0;
   if (!step) return state;
   if (state.phase === 'menu') {
-    const max = 1;
+    const max = menuHits(false).length - 1;
     const next = ((state.focus + step) % (max + 1) + (max + 1)) % (max + 1);
     return { ...state, focus: next };
   }
@@ -166,11 +199,16 @@ export function steer(state, delta) {
     const next = ((state.focus + step) % (max + 1) + (max + 1)) % (max + 1);
     return { ...state, focus: next };
   }
+  if (state.phase === 'characters') {
+    const max = characterHits(false).length - 1;
+    const next = ((state.focus + step) % (max + 1) + (max + 1)) % (max + 1);
+    return { ...state, focus: next };
+  }
   return state;
 }
 
 export function goBack(state) {
-  if (state.phase === 'levels') return openMenu(state).state;
+  if (state.phase === 'levels' || state.phase === 'characters') return openMenu(state).state;
   if (state.phase === 'over' || state.phase === 'cleared') {
     if (state.overAt != null && state.time - state.overAt < BLOT_TIME) return state;
     if (state.mode === 'level') return openLevels(state).state;
@@ -202,6 +240,7 @@ function tappedExit(state, input = {}) {
 export function press(state, input = {}) {
   if (state.phase === 'menu') return pickMenu(state, input);
   if (state.phase === 'levels') return pickLevel(state, input);
+  if (state.phase === 'characters') return pickCharacter(state, input);
   if (state.phase === 'cleared') {
     if (state.overAt != null && state.time - state.overAt < BLOT_TIME) {
       return { state, events: [] };

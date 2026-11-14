@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-On the title page choose the paint-smear ∞ for an open run, or the rising signal bars for ten staged sheets (10 skips, then 20, up to 100). Locked levels open after you clear the one before. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count and cleared levels stay in the browser.
+On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. **bun** is the head-with-bun sketch; **ballerina** is the tutu skipper. Dress color still changes each fresh run. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count, cleared levels, and character stay in the browser.
 
 ## Fonts
 
@@ -25,7 +25,7 @@ Both licenses allow this game to bundle the files and serve them from GitHub Pag
 
 ## Art
 
-Menu controls use original paint-smear symbols that tint the same way: `src/assets/infinity-symbol.png` (∞), `src/assets/levels-symbol.png` (rising bars), and `src/assets/back-symbol.png` (curved return arrow).
+Menu controls use original paint-smear symbols that tint the same way: `src/assets/infinity-symbol.png` (∞), `src/assets/levels-symbol.png` (rising bars), `src/assets/characters-symbol.png` (head with bun), and `src/assets/back-symbol.png` (curved return arrow).
 
 ## Layout
 

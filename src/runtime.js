@@ -6,7 +6,14 @@ import { viewModel } from './core/present.js';
 import { bindControls } from './input/controls.js';
 import { camera, fitCanvas, readSafeInsets } from './render/fit.js';
 import { drawScene } from './render/draw.js';
-import { readBest, readCleared, writeBest, writeCleared } from './storage.js';
+import {
+  readBest,
+  readCharacter,
+  readCleared,
+  writeBest,
+  writeCharacter,
+  writeCleared,
+} from './storage.js';
 
 const SOUNDS = { jump: 'jump', start: 'jump', skip: 'land', miss: 'blot', clear: 'land' };
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
@@ -32,7 +39,8 @@ export function startGame(env) {
   const storage = env.storage;
   let bestWritten = readBest(storage);
   let clearedWritten = readCleared(storage);
-  let state = createState(bestWritten, clearedWritten);
+  let characterWritten = readCharacter(storage);
+  let state = createState(bestWritten, clearedWritten, characterWritten);
   const canvas = env.canvas;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('This browser cannot draw the sketchbook page.');
@@ -51,7 +59,7 @@ export function startGame(env) {
       pointer = info || null;
     },
     onSteer(delta, code) {
-      if (state.phase === 'menu' || state.phase === 'levels') {
+      if (state.phase === 'menu' || state.phase === 'levels' || state.phase === 'characters') {
         steer = delta;
         return;
       }
@@ -75,7 +83,9 @@ export function startGame(env) {
     const stage = phone ? PHONE_STAGE : null;
     const cam = camera(lastBox.w, lastBox.h, stage, lastInsets);
     const focus = titleAnchor(phone);
-    const browsing = state.phase === 'menu' || state.phase === 'levels';
+    const browsing = state.phase === 'menu'
+      || state.phase === 'levels'
+      || state.phase === 'characters';
     const zoom = browsing ? menuZoom(phone) : 1 + (phone ? 0.32 : 1.05);
     const page = pageFromScreen(info.x, info.y, cam, focus, zoom);
     return { x: page.x, y: page.y, phone };
@@ -117,6 +127,10 @@ export function startGame(env) {
     if (state.cleared !== clearedWritten) {
       writeCleared(storage, state.cleared);
       clearedWritten = state.cleared;
+    }
+    if (state.character !== characterWritten) {
+      writeCharacter(storage, state.character);
+      characterWritten = state.character;
     }
     const box = fitCanvas(canvas, env.window);
     lastBox = box;

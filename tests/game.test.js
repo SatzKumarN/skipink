@@ -37,6 +37,7 @@ describe('createState', () => {
     expect(createState().phase).toBe('menu');
     expect(createState().unlocked).toBe(1);
     expect(createState().cleared).toBe(0);
+    expect(createState().character).toBe('bun');
     expect(createState(4.8).best).toBe(4);
     expect(createState(-3).best).toBe(0);
     expect(createState(Number.NaN).best).toBe(0);
@@ -44,6 +45,8 @@ describe('createState', () => {
     expect(createState(0, 3.7).unlocked).toBe(4);
     expect(createState(0, -2).cleared).toBe(0);
     expect(createState(0, 99).cleared).toBe(10);
+    expect(createState(0, 0, 'ballerina').character).toBe('ballerina');
+    expect(createState(0, 0, 'nope').character).toBe('bun');
   });
 });
 
@@ -253,6 +256,36 @@ describe('frame', () => {
     expect(locked.state.mode).toBe('level');
     expect(locked.state.level).toBe(1);
     expect(locked.state.goal).toBe(10);
+  });
+
+  it('opens characters and keeps the chosen skipper', () => {
+    const once = frame(createState(), 0, { steer: 1 });
+    const moved = frame(once.state, 0, { steer: 1 });
+    expect(moved.state.focus).toBe(2);
+    const picker = frame(moved.state, 0, { pressed: true });
+    expect(picker.state.phase).toBe('characters');
+    expect(picker.state.focus).toBe(0);
+    expect(steer(picker.state, 1).focus).toBe(1);
+    expect(steer(picker.state, -1).focus).toBe(2);
+    const levels = press(steer(createState(), 1)).state;
+    expect(steer(levels, 1).focus).toBe(1);
+    const ballerina = frame({ ...picker.state, focus: 1 }, 0, { pressed: true });
+    expect(ballerina.state.phase).toBe('menu');
+    expect(ballerina.state.character).toBe('ballerina');
+    const run = frame(ballerina.state, 0, { pressed: true });
+    expect(run.state.phase).toBe('count');
+    expect(run.state.character).toBe('ballerina');
+    expect(goBack(picker.state).phase).toBe('menu');
+    const back = frame({ ...picker.state, focus: 2 }, 0, { pressed: true });
+    expect(back.state.phase).toBe('menu');
+    expect(back.state.character).toBe('bun');
+    const empty = press({ ...picker.state, focus: 99 });
+    expect(empty.state.phase).toBe('characters');
+    expect(empty.state.focus).toBe(99);
+    expect(empty.events).toEqual([]);
+    const reopen = press({ ...createState(0, 0, 'ballerina'), focus: 2 });
+    expect(reopen.state.phase).toBe('characters');
+    expect(reopen.state.focus).toBe(1);
   });
 });
 
