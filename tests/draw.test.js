@@ -362,8 +362,8 @@ describe('drawScene', () => {
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(false);
     expect(levels.calls.some((call) => call[0] === 'drawImage' && call[1] === BACK_ARROW)).toBe(true);
-    expect(menu.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
-    expect(menu.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(false);
+    expect(menu.calls.some((call) => call[0] === 'ellipse')).toBe(false);
 
     const over = mockContext();
     drawScene(over, 900, 640, scene({

@@ -858,8 +858,7 @@ function drawChoice(ctx, hit, phone) {
   if (back) {
     paintBrushSymbol(ctx, hit, selected, locked, 'back');
   } else if (mode) {
-    drawInkSplash(ctx, hit, selected, locked);
-    paintBrushSymbol(ctx, hit, selected, locked, hit.id, 0.72);
+    paintBrushSymbol(ctx, hit, selected, locked, hit.id, 0.82);
   } else {
     drawInkSplash(ctx, hit, selected, locked);
     ctx.textAlign = 'center';
