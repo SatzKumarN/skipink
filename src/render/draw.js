@@ -523,7 +523,7 @@ function titleSpot(sheet, phone) {
   const playX = phone ? 410 : 250;
   const cardX = phone ? 500 : 480;
   const playY = phone ? 96 : 120;
-  const cardY = phone ? 168 : 250;
+  const cardY = phone ? 112 : 250;
   return {
     x: playX + (cardX - playX) * sheet,
     y: playY + (cardY - playY) * sheet,
@@ -671,46 +671,87 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
   ctx.restore();
 }
 
+function inkDropPath(ctx, cx, cy, rx, ry) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - ry);
+  ctx.bezierCurveTo(
+    cx + rx * 0.14,
+    cy - ry * 0.42,
+    cx + rx,
+    cy - ry * 0.12,
+    cx + rx * 0.96,
+    cy + ry * 0.22,
+  );
+  ctx.bezierCurveTo(
+    cx + rx * 0.92,
+    cy + ry * 0.98,
+    cx - rx * 0.92,
+    cy + ry * 0.98,
+    cx - rx * 0.96,
+    cy + ry * 0.22,
+  );
+  ctx.bezierCurveTo(
+    cx - rx,
+    cy - ry * 0.12,
+    cx - rx * 0.14,
+    cy - ry * 0.42,
+    cx,
+    cy - ry,
+  );
+  ctx.closePath();
+}
+
+function drawInkDrop(ctx, hit, selected, locked) {
+  const cx = hit.x + hit.w / 2;
+  const cy = hit.y + hit.h / 2;
+  const rx = hit.w * 0.38;
+  const ry = hit.h * 0.42;
+  inkDropPath(ctx, cx, cy, rx, ry);
+  if (hit.done && !locked) {
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.globalAlpha = 0.12;
+    ctx.fill();
+    ctx.globalAlpha = locked ? 0.4 : 1;
+    inkDropPath(ctx, cx, cy, rx, ry);
+  }
+  ctx.strokeStyle = locked
+    ? COLOR.pencilLine
+    : (selected ? COLOR.cinnabar : COLOR.ink);
+  ctx.lineWidth = selected && !locked ? 3.2 : 2.2;
+  ctx.stroke();
+}
+
 function drawChoice(ctx, hit, phone) {
   const selected = Boolean(hit.selected);
   const locked = Boolean(hit.locked);
   const cx = hit.x + hit.w / 2;
   const cy = hit.y + hit.h / 2;
+  const mode = hit.id === 'infinity' || hit.id === 'levels';
+  const back = hit.id === 'back';
   ctx.save();
-  if (hit.id === 'back' || hit.id === 'infinity' || hit.id === 'levels') {
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+  ctx.globalAlpha = locked ? 0.4 : 1;
+  drawInkDrop(ctx, hit, selected, locked);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  if (mode || back) {
     ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
-    ctx.font = `${phone ? 28 : 34}px ${PEN}`;
-    ctx.globalAlpha = locked ? 0.45 : 1;
-    ctx.fillText(hit.label, cx, cy);
-    if (selected && !locked) {
-      ink(ctx, 2.2, (pen) => {
-        pen.moveTo(cx - hit.w * 0.28, cy + (phone ? 16 : 18));
-        pen.lineTo(cx + hit.w * 0.28, cy + (phone ? 16 : 18));
-      });
-    }
+    ctx.font = `${phone ? (mode ? 22 : 20) : (mode ? 28 : 24)}px ${PEN}`;
+    ctx.fillText(hit.label, cx, cy + (mode ? 4 : 2));
   } else {
-    ctx.globalAlpha = locked ? 0.4 : 1;
-    ctx.strokeStyle = selected && !locked ? COLOR.cinnabar : COLOR.ink;
-    ctx.lineWidth = selected && !locked ? 3 : 2;
-    ctx.strokeRect(hit.x + 4, hit.y + 4, hit.w - 8, hit.h - 8);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
     ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
-    ctx.font = `${phone ? 26 : 30}px ${BRUSH}`;
-    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
+    ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
+    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 8 : 10));
     ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
-    ctx.font = `${phone ? 14 : 16}px ${PEN}`;
-    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
+    ctx.font = `${phone ? 13 : 15}px ${PEN}`;
+    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 16 : 18));
   }
   ctx.restore();
 }
 
 function drawMenus(ctx, vm, phone) {
   const items = vm.menu || vm.levels;
-  if (!items || !items.length) return;
-  items.forEach((hit) => drawChoice(ctx, hit, phone));
+  if (items && items.length) items.forEach((hit) => drawChoice(ctx, hit, phone));
+  if (vm.exit) drawChoice(ctx, vm.exit, phone);
 }
 
 export function drawScene(ctx, width, height, vm, insets) {
@@ -745,7 +786,7 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.save();
     ctx.globalAlpha = Number.isFinite(vm.hintGlow) ? vm.hintGlow : 1;
     ctx.fillStyle = COLOR.pencil;
-    const soft = vm.hint === 'tap to retry' || vm.hint === 'level cleared';
+    const soft = vm.hint === 'tap drop to leave' || vm.hint === 'level cleared';
     ctx.font = `${soft ? 12 + sheet * 2 : 22 + sheet * 8}px ${PEN}`;
     if (sheet > 0.45) {
       ctx.textAlign = 'center';

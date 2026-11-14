@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AIRTIME, BLOT_TIME, COUNTDOWN, GRACE, MAX_FRAME, OPENING_SLACK } from '../src/config.js';
 import { DRESSES } from '../src/config.js';
 import { createState, feetUp, frame, goBack, press, steer, step } from '../src/core/game.js';
-import { levelHits } from '../src/core/menu.js';
+import { exitHit, levelHits } from '../src/core/menu.js';
 import { buildSentence } from '../src/core/sentence.js';
 
 function seek(state, time) {
@@ -323,5 +323,25 @@ describe('levels', () => {
     });
     expect(picked.state.mode).toBe('level');
     expect(picked.state.goal).toBe(10);
+
+    const ready = {
+      ...createState(),
+      phase: 'over',
+      mode: 'infinity',
+      overAt: 1,
+      time: 1 + BLOT_TIME + 0.7,
+      score: 3,
+    };
+    const exit = exitHit(false);
+    const menued = press(ready, {
+      x: exit.x + exit.w / 2,
+      y: exit.y + exit.h / 2,
+      phone: false,
+    });
+    expect(menued.state.phase).toBe('menu');
+    expect(menued.state.mode).toBeNull();
+    const retry = press(ready, { x: 480, y: 250, phone: false });
+    expect(retry.state.phase).toBe('count');
+    expect(retry.state.mode).toBe('infinity');
   });
 });

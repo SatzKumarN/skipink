@@ -326,9 +326,26 @@ describe('drawScene', () => {
         },
       ],
     }));
+    expect(levels.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
+
+    const over = mockContext();
+    drawScene(over, 900, 640, scene({
+      phase: 'over',
+      sheet: 1,
+      score: 4,
+      blot: 1,
+      hint: 'tap drop to leave',
+      hintGlow: 1,
+      exit: {
+        id: 'back', label: 'back', index: 0,
+        x: 312, y: 294, w: 100, h: 64, selected: false, locked: false,
+      },
+    }));
+    expect(over.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(true);
 
     const cleared = mockContext();
     drawScene(cleared, 900, 640, scene({
