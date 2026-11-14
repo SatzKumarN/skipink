@@ -383,10 +383,11 @@ describe('drawScene', () => {
         },
       ],
     }));
-    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(true);
-    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'ballerina')).toBe(true);
-    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(true);
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(false);
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'ballerina')).toBe(false);
+    expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(false);
     expect(characters.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(styleWas(characters, 'fillStyle', COLOR.cinnabar)).toBe(true);
 
     const lockedPick = mockContext();
     drawScene(lockedPick, 390, 844, scene({
@@ -405,8 +406,8 @@ describe('drawScene', () => {
         },
       ],
     }));
-    expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(true);
-    expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(true);
+    expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(false);
+    expect(lockedPick.calls.some((call) => call[0] === 'ellipse')).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({

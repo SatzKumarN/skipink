@@ -388,11 +388,13 @@ function drawFigure(ctx, vm) {
 
 function drawCharacterPreview(ctx, hit, character, selected, locked) {
   const cx = hit.x + hit.w / 2;
-  const cy = hit.y + hit.h / 2 - (hit.h > 120 ? 10 : 6);
-  const tone = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
-  const scale = Math.min(hit.w, hit.h) / 150;
+  const cy = hit.y + hit.h / 2;
+  const tone = locked
+    ? COLOR.pencilLine
+    : (selected || hit.done ? COLOR.cinnabar : COLOR.ink);
+  const scale = Math.min(hit.w, hit.h) / 130;
   ctx.save();
-  ctx.translate(cx, cy + 18 * scale);
+  ctx.translate(cx, cy + 22 * scale);
   ctx.scale(scale, scale);
   ctx.fillStyle = tone;
   ctx.strokeStyle = tone;
@@ -1037,16 +1039,6 @@ function drawChoice(ctx, hit, phone) {
   } else if (character) {
     drawInkSplash(ctx, hit, selected, locked);
     drawCharacterPreview(ctx, hit, hit.id, selected, locked);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
-    ctx.font = `${phone ? 16 : 18}px ${PEN}`;
-    ctx.fillText(hit.label, cx, hit.y + hit.h - (phone ? 16 : 20));
-    if (hit.done) {
-      ctx.fillStyle = COLOR.cinnabar;
-      ctx.font = `${phone ? 12 : 14}px ${PEN}`;
-      ctx.fillText('on', cx, hit.y + hit.h - (phone ? 2 : 4));
-    }
   } else {
     drawInkSplash(ctx, hit, selected, locked);
     ctx.textAlign = 'center';

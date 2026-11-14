@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. **bun** is the head-with-bun sketch; **ballerina** is the tutu skipper. Dress color still changes each fresh run. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count, cleared levels, and character stay in the browser.
+On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. The character sheet shows figure previews only (head-with-bun or ballerina). Dress color still changes each fresh run. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count, cleared levels, and character stay in the browser.
 
 ## Fonts
 
