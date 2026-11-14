@@ -1,4 +1,5 @@
 import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
+import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
@@ -346,16 +347,24 @@ function drawScore(ctx, vm) {
   ctx.fillText(String(vm.score), 820, 128);
   ctx.font = `20px ${PEN}`;
   ctx.fillStyle = COLOR.pencil;
-  ctx.fillText('skips', 820, 156);
-  if (vm.showBest) {
-    ctx.font = `18px ${PEN}`;
-    ctx.fillStyle = COLOR.pencil;
-    ctx.fillText(`best ${vm.best}`, 820, 182);
-  }
-  if (vm.crowned) {
-    ctx.fillStyle = COLOR.cinnabar;
-    ctx.font = `20px ${PEN}`;
-    ctx.fillText('new', 748, 156);
+  if (vm.goal) {
+    ctx.fillText(`of ${vm.goal}`, 820, 156);
+    if (vm.level) {
+      ctx.font = `18px ${PEN}`;
+      ctx.fillText(`level ${vm.level}`, 820, 182);
+    }
+  } else {
+    ctx.fillText('skips', 820, 156);
+    if (vm.showBest) {
+      ctx.font = `18px ${PEN}`;
+      ctx.fillStyle = COLOR.pencil;
+      ctx.fillText(`best ${vm.best}`, 820, 182);
+    }
+    if (vm.crowned) {
+      ctx.fillStyle = COLOR.cinnabar;
+      ctx.font = `20px ${PEN}`;
+      ctx.fillText('new', 748, 156);
+    }
   }
 }
 
@@ -567,7 +576,7 @@ function drawPlay(ctx, vm, sheet) {
     ctx.restore();
   }
   if (vm.fleck > 0) drawFleck(ctx, vm);
-  if (vm.blot > 0) drawSplash(ctx, vm);
+  if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) drawSplash(ctx, vm);
   ctx.restore();
 }
 
@@ -617,7 +626,7 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
     drawCornerScore(ctx, vm, 1 - sheet / 0.12, phone);
     return;
   }
-  const forming = vm.phase === 'over';
+  const forming = vm.phase === 'over' || vm.phase === 'cleared';
   const t = forming ? sheet : 0;
   if (!forming) {
     drawCornerScore(ctx, vm, 1 - Math.min(sheet, 1), phone);
@@ -639,9 +648,15 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
     ctx.globalAlpha = 1 - t / 0.65;
     ctx.fillStyle = COLOR.pencil;
     ctx.font = `20px ${PEN}`;
-    ctx.fillText('skips', x, mix(156, title.y + (phone ? 100 : 140), ease));
+    const caption = vm.phase === 'cleared' ? 'cleared' : (vm.goal ? `of ${vm.goal}` : 'skips');
+    ctx.fillText(caption, x, mix(156, title.y + (phone ? 100 : 140), ease));
   }
-  if (vm.showBest) {
+  if (vm.phase === 'cleared') {
+    ctx.globalAlpha = ease;
+    ctx.fillStyle = COLOR.pencil;
+    ctx.font = `${mix(18, phone ? 22 : 28, ease)}px ${PEN}`;
+    ctx.fillText(vm.level ? `level ${vm.level}` : 'level', x, mix(182, title.y + bestDrop, ease));
+  } else if (vm.showBest) {
     ctx.globalAlpha = 1;
     ctx.fillStyle = COLOR.pencil;
     ctx.font = `${mix(18, phone ? 22 : 28, ease)}px ${PEN}`;
@@ -656,11 +671,56 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
   ctx.restore();
 }
 
+function drawChoice(ctx, hit, phone) {
+  const selected = Boolean(hit.selected);
+  const locked = Boolean(hit.locked);
+  const cx = hit.x + hit.w / 2;
+  const cy = hit.y + hit.h / 2;
+  ctx.save();
+  if (hit.id === 'back' || hit.id === 'infinity' || hit.id === 'levels') {
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
+    ctx.font = `${phone ? 28 : 34}px ${PEN}`;
+    ctx.globalAlpha = locked ? 0.45 : 1;
+    ctx.fillText(hit.label, cx, cy);
+    if (selected && !locked) {
+      ink(ctx, 2.2, (pen) => {
+        pen.moveTo(cx - hit.w * 0.28, cy + (phone ? 16 : 18));
+        pen.lineTo(cx + hit.w * 0.28, cy + (phone ? 16 : 18));
+      });
+    }
+  } else {
+    ctx.globalAlpha = locked ? 0.4 : 1;
+    ctx.strokeStyle = selected && !locked ? COLOR.cinnabar : COLOR.ink;
+    ctx.lineWidth = selected && !locked ? 3 : 2;
+    ctx.strokeRect(hit.x + 4, hit.y + 4, hit.w - 8, hit.h - 8);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
+    ctx.font = `${phone ? 26 : 30}px ${BRUSH}`;
+    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
+    ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
+    ctx.font = `${phone ? 14 : 16}px ${PEN}`;
+    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
+  }
+  ctx.restore();
+}
+
+function drawMenus(ctx, vm, phone) {
+  const items = vm.menu || vm.levels;
+  if (!items || !items.length) return;
+  items.forEach((hit) => drawChoice(ctx, hit, phone));
+}
+
 export function drawScene(ctx, width, height, vm, insets) {
   const phone = phoneLayout(width, height);
   const cam = camera(width, height, phone ? PHONE_STAGE : null, insets);
   const sheet = Number.isFinite(vm.sheet) ? vm.sheet : 0;
-  const zoom = 1 + sheet * (phone ? 0.32 : 1.05);
+  const browsing = Boolean(vm.menu || vm.levels);
+  const zoom = browsing
+    ? menuZoom(phone)
+    : 1 + sheet * (phone ? 0.32 : 1.05);
   const spot = titleSpot(sheet, phone);
   const focusX = PAGE.w / 2 + (spot.x - PAGE.w / 2) * sheet;
   const focusY = PAGE.h / 2 + (spot.y - PAGE.h / 2) * sheet;
@@ -679,16 +739,19 @@ export function drawScene(ctx, width, height, vm, insets) {
   drawPlay(ctx, vm, sheet);
   if (vm.count) drawCountdown(ctx, vm.count, phone);
   const title = drawTitle(ctx, sheet, phone);
+  drawMenus(ctx, vm, phone);
   drawMovingScores(ctx, vm, title, sheet, phone);
-  if (vm.hint && !vm.recap) {
+  if (vm.hint && !vm.recap && !vm.menu && !vm.levels) {
     ctx.save();
     ctx.globalAlpha = Number.isFinite(vm.hintGlow) ? vm.hintGlow : 1;
     ctx.fillStyle = COLOR.pencil;
-    const tap = vm.hint === 'tap to start';
-    ctx.font = `${tap ? 12 + sheet * 2 : 22 + sheet * 8}px ${PEN}`;
+    const soft = vm.hint === 'tap to retry' || vm.hint === 'level cleared';
+    ctx.font = `${soft ? 12 + sheet * 2 : 22 + sheet * 8}px ${PEN}`;
     if (sheet > 0.45) {
       ctx.textAlign = 'center';
-      const hintY = vm.phase === 'over' ? title.y + (phone ? 168 : 232) : title.y + (phone ? 64 : 78);
+      const hintY = (vm.phase === 'over' || vm.phase === 'cleared')
+        ? title.y + (phone ? 168 : 232)
+        : title.y + (phone ? 64 : 78);
       ctx.fillText(vm.hint, title.x, hintY);
     } else {
       ctx.textAlign = phone ? 'center' : 'left';

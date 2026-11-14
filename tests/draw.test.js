@@ -284,6 +284,83 @@ describe('drawScene', () => {
     expect(fontFor(counting, 'skip')).toContain(BRUSH);
   });
 
+  it('paints the mode menu and locked levels', () => {
+    const menu = mockContext();
+    drawScene(menu, 900, 640, scene({
+      phase: 'menu',
+      sheet: 1,
+      showScore: false,
+      hint: '',
+      menu: [
+        {
+          id: 'infinity', label: 'infinity', index: 0,
+          x: 350, y: 320, w: 260, h: 48, selected: true, locked: false,
+        },
+        {
+          id: 'levels', label: 'levels', index: 1,
+          x: 350, y: 380, w: 260, h: 48, selected: false, locked: false,
+        },
+      ],
+    }));
+    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'infinity')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'levels')).toBe(true);
+
+    const levels = mockContext();
+    drawScene(levels, 390, 844, scene({
+      phase: 'levels',
+      sheet: 1,
+      showScore: false,
+      hint: '',
+      levels: [
+        {
+          id: 'level-1', label: '1', level: 1, goal: 10, index: 0,
+          x: 360, y: 220, w: 118, h: 58, selected: true, locked: false, done: true,
+        },
+        {
+          id: 'level-2', label: '2', level: 2, goal: 20, index: 1,
+          x: 490, y: 220, w: 118, h: 58, selected: false, locked: true, done: false,
+        },
+        {
+          id: 'back', label: 'back', index: 2,
+          x: 400, y: 500, w: 140, h: 36, selected: false, locked: false,
+        },
+      ],
+    }));
+    expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(true);
+
+    const cleared = mockContext();
+    drawScene(cleared, 900, 640, scene({
+      phase: 'cleared',
+      sheet: 0.5,
+      score: 10,
+      goal: 10,
+      level: 1,
+      won: true,
+      showBest: false,
+      crowned: false,
+      hint: 'level cleared',
+      hintGlow: 1,
+    }));
+    expect(cleared.calls.some((call) => call[0] === 'fillText' && call[1] === 'cleared')).toBe(true);
+    expect(cleared.calls.some((call) => call[0] === 'fillText' && call[1] === 'level 1')).toBe(true);
+
+    const leveled = mockContext();
+    drawScene(leveled, 900, 640, scene({
+      phase: 'playing',
+      sheet: 0,
+      score: 3,
+      goal: 10,
+      level: 1,
+      showBest: false,
+      crowned: false,
+      hint: '',
+    }));
+    expect(leveled.calls.some((call) => call[0] === 'fillText' && call[1] === 'of 10')).toBe(true);
+    expect(leveled.calls.some((call) => call[0] === 'fillText' && call[1] === 'level 1')).toBe(true);
+  });
+
   it('sets a miss down as a round splash in the character color', () => {
     const paint = (splash, blot = 1) => {
       const ctx = mockContext();

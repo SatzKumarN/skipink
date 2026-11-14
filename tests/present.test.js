@@ -71,11 +71,14 @@ describe('hands and blot', () => {
 
 describe('copy', () => {
   it('names the button and the pencil note for each phase', () => {
-    expect(buttonLabel('ready', 0)).toBe('Start');
+    expect(buttonLabel('menu', 0)).toBe('Choose');
+    expect(buttonLabel('levels', 0)).toBe('Choose');
     expect(buttonLabel('count', 0, 3)).toBe('3');
     expect(buttonLabel('count', 0, null)).toBe('');
     expect(buttonLabel('over', 0.2)).toBe('Wait');
     expect(buttonLabel('over', 1)).toBe('Try again');
+    expect(buttonLabel('cleared', 0.2)).toBe('Wait');
+    expect(buttonLabel('cleared', 1)).toBe('Levels');
     expect(buttonLabel('playing', 0)).toBe('Jump');
     expect(buttonLabel('other', 0)).toBe('Jump');
     const ready = createState();
@@ -90,12 +93,14 @@ describe('copy', () => {
     expect(countDigit(null)).toBeNull();
     expect(hintFor(counting, 0)).toBe('');
     const playing = at(0.1);
-    expect(hintFor(ready, 0)).toBe('tap to start');
+    expect(hintFor(ready, 0)).toBe('');
     expect(hintFor(playing, 0)).toBe('jump as it swings under');
     expect(hintFor({ ...playing, score: 2 }, 0)).toBe('');
     expect(hintFor({ ...playing, best: 3 }, 0)).toBe('');
-    expect(hintFor({ ...playing, phase: 'over' }, 1)).toBe('tap to start');
+    expect(hintFor({ ...playing, goal: 10, score: 0 }, 0)).toBe('10 skips to clear');
+    expect(hintFor({ ...playing, phase: 'over' }, 1)).toBe('tap to retry');
     expect(hintFor({ ...playing, phase: 'over' }, 0.2)).toBe('');
+    expect(hintFor({ ...playing, phase: 'cleared' }, 1)).toBe('level cleared');
     expect(hintPulse(0.25, false)).toBe(1);
     expect(hintPulse(0, false)).toBe(0.2);
     expect(hintPulse(Number.NaN, false)).toBe(0.2);
@@ -104,11 +109,13 @@ describe('copy', () => {
 });
 
 describe('viewModel', () => {
-  it('builds the ready page, a live skip, and a finished sheet', () => {
+  it('builds the menu page, a live skip, and a finished sheet', () => {
     const ready = viewModel(createState());
-    expect(ready.hint).toBe('tap to start');
+    expect(ready.hint).toBe('');
     expect(ready.sheet).toBe(1);
-    expect(ready.hintGlow).toBe(0.2);
+    expect(ready.menu).toHaveLength(2);
+    expect(ready.menu[0].selected).toBe(true);
+    expect(ready.hintGlow).toBe(1);
     expect(viewModel(createState(), { clock: 0.25, reducedMotion: true }).hintGlow).toBe(1);
     expect(ready.showScore).toBe(false);
     expect(ready.dress).toEqual(DRESSES[0]);
@@ -119,7 +126,14 @@ describe('viewModel', () => {
     expect(viewModel({ ...createState(), dress: -1 }).dress).toEqual(DRESSES[1]);
     expect(viewModel({ ...createState(), dress: Number.NaN }).dress).toEqual(DRESSES[0]);
     expect(ready.pencil).toBe(true);
-    expect(ready.label).toBe('Start');
+    expect(ready.label).toBe('Choose');
+    const levels = viewModel({ ...createState(0, 2), phase: 'levels', focus: 1 });
+    expect(levels.levels).toHaveLength(11);
+    expect(levels.levels[0].locked).toBe(false);
+    expect(levels.levels[0].done).toBe(true);
+    expect(levels.levels[2].locked).toBe(false);
+    expect(levels.levels[3].locked).toBe(true);
+    expect(levels.levels[1].selected).toBe(true);
     const countView = viewModel(press(createState()).state);
     expect(countView.count).toBe(3);
     expect(countView.label).toBe('3');
@@ -181,7 +195,7 @@ describe('viewModel', () => {
     expect(done.waiting).toBe(false);
     expect(done.crowned).toBe(true);
     expect(done.fleck).toBe(0);
-    expect(done.hint).toBe('tap to start');
+    expect(done.hint).toBe('tap to retry');
     expect(done.sheet).toBeCloseTo(0);
     expect(sheetAmount({
       phase: 'over',

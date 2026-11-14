@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { LEGACY_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
-import { readBest, writeBest } from '../src/storage.js';
+import { LEGACY_STORAGE_KEY, LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
+import { readBest, readCleared, unlockedLevel, writeBest, writeCleared } from '../src/storage.js';
 
 function memory(initial) {
   const values = new Map(initial);
@@ -59,5 +59,21 @@ describe('best count', () => {
     expect(readBest(quiet)).toBe(2);
     expect(quiet.values.get(STORAGE_KEY)).toBe('2');
     expect(quiet.values.get(LEGACY_STORAGE_KEY)).toBe('2');
+  });
+});
+
+describe('level progress', () => {
+  it('reads and writes how many levels are cleared', () => {
+    const store = memory([[LEVEL_STORAGE_KEY, '4.2']]);
+    expect(readCleared(store)).toBe(4);
+    expect(unlockedLevel(4)).toBe(5);
+    expect(writeCleared(store, 6.8)).toBe(6);
+    expect(store.values.get(LEVEL_STORAGE_KEY)).toBe('6');
+    expect(writeCleared(store, -1)).toBe(0);
+    expect(writeCleared(store, 99)).toBe(10);
+    expect(readCleared({ getItem: () => { throw new Error('blocked'); } })).toBe(0);
+    expect(writeCleared({ setItem: () => { throw new Error('blocked'); } }, 3)).toBe(0);
+    expect(unlockedLevel(0)).toBe(1);
+    expect(unlockedLevel(10)).toBe(10);
   });
 });

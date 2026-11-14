@@ -29,7 +29,7 @@ describe('boot', () => {
     window.matchMedia = () => ({ matches: false });
     const game = boot(window);
     queued[0](window.performance.now());
-    expect(document.querySelector('#jump').textContent).toBe('Start');
+    expect(document.querySelector('#jump').textContent).toBe('Choose');
     game.stop();
   });
 });

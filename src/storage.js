@@ -1,9 +1,15 @@
-import { LEGACY_STORAGE_KEY, STORAGE_KEY } from './config.js';
+import { LEGACY_STORAGE_KEY, LEVEL_STORAGE_KEY, LEVELS, STORAGE_KEY } from './config.js';
 
 function wholeCount(raw) {
   const value = Number(raw);
   if (!Number.isFinite(value) || value <= 0) return 0;
   return Math.floor(value);
+}
+
+function clampCleared(raw) {
+  const value = Number(raw);
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.min(LEVELS.length, Math.floor(value));
 }
 
 export function readBest(storage) {
@@ -33,4 +39,26 @@ export function writeBest(storage, best) {
   } catch {
     return 0;
   }
+}
+
+export function readCleared(storage) {
+  try {
+    return clampCleared(storage.getItem(LEVEL_STORAGE_KEY));
+  } catch {
+    return 0;
+  }
+}
+
+export function writeCleared(storage, cleared) {
+  try {
+    const safe = clampCleared(cleared);
+    storage.setItem(LEVEL_STORAGE_KEY, String(safe));
+    return safe;
+  } catch {
+    return 0;
+  }
+}
+
+export function unlockedLevel(cleared) {
+  return Math.min(LEVELS.length, clampCleared(cleared) + 1);
 }

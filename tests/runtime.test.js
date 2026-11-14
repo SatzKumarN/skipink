@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { STORAGE_KEY } from '../src/config.js';
-import { createState } from '../src/core/game.js';
+import { LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
+import { createState, frame } from '../src/core/game.js';
 import { prefersReducedMotion, startGame } from '../src/runtime.js';
 import { mockContext } from './helpers/mockContext.js';
 
@@ -60,12 +60,13 @@ describe('startGame', () => {
     const game = startGame(env);
     queued.shift()(1000);
     expect(paint).toHaveBeenCalled();
-    expect(button.textContent).toBe('Start');
+    expect(button.textContent).toBe('Choose');
     expect(button.disabled).toBe(false);
-    expect(game.getState().phase).toBe('ready');
+    expect(game.getState().phase).toBe('menu');
     button.dispatchEvent(new PointerEvent('pointerdown', { button: 0, cancelable: true }));
     queued.shift()(1032);
     expect(game.getState().phase).toBe('count');
+    expect(game.getState().mode).toBe('infinity');
     expect(button.textContent).toBe('3');
     expect(button.disabled).toBe(true);
     game.stop();
@@ -101,7 +102,7 @@ describe('startGame', () => {
     window.webkitAudioContext = undefined;
     const game = startGame(box.env);
     box.queued.shift()(1000);
-    expect(box.button.textContent).toBe('Start');
+    expect(box.button.textContent).toBe('Choose');
     game.stop();
   });
 
@@ -222,5 +223,46 @@ describe('startGame', () => {
     const box = harness();
     box.canvas.getContext = () => null;
     expect(() => startGame(box.env)).toThrow(/sketchbook page/);
+  });
+
+  it('steers into levels, saves clears, and jumps with the up arrow while playing', () => {
+    const box = harness();
+    let updateImpl = null;
+    box.env.update = (state, dt, input) => {
+      if (updateImpl) return updateImpl(state, dt, input);
+      return frame(state, dt, input);
+    };
+    const game = startGame(box.env);
+    box.queued.shift()(1000);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', cancelable: true }));
+    box.queued.shift()(1016);
+    expect(game.getState().focus).toBe(1);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', cancelable: true }));
+    box.queued.shift()(1032);
+    expect(game.getState().phase).toBe('levels');
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', cancelable: true }));
+    box.queued.shift()(1048);
+    expect(game.getState().phase).toBe('menu');
+    updateImpl = () => ({
+      state: {
+        ...createState(0, 1),
+        phase: 'playing',
+        time: 0.4,
+        prevContact: 0,
+        nextContact: 1,
+        mood: 'even',
+        score: 4,
+        best: 4,
+        cleared: 2,
+        unlocked: 3,
+      },
+      events: ['clear'],
+    });
+    box.queued.shift()(1100);
+    expect(box.mem.get(LEVEL_STORAGE_KEY)).toBe('2');
+    expect(box.audio.play).toHaveBeenCalledWith('land');
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp', cancelable: true }));
+    box.queued.shift()(1116);
+    game.stop();
   });
 });

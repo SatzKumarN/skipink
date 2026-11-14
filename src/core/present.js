@@ -1,5 +1,6 @@
 import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES } from '../config.js';
 import { clamp01 } from './math.js';
+import { levelHits, menuHits } from './menu.js';
 import { idleAngle, ropeProgress } from './rope.js';
 
 export function footClearance(state) {
@@ -40,7 +41,7 @@ export function handLift(mood, u) {
 }
 
 export function blotAmount(state, reducedMotion) {
-  if (state.phase !== 'over' || state.overAt == null) return 0;
+  if ((state.phase !== 'over' && state.phase !== 'cleared') || state.overAt == null) return 0;
   if (reducedMotion) return 1;
   return clamp01((state.time - state.overAt) / BLOT_TIME);
 }
@@ -54,8 +55,10 @@ export function countDigit(state) {
 }
 
 export function buttonLabel(phase, blot, count) {
-  if (phase === 'ready') return 'Start';
+  if (phase === 'menu' || phase === 'levels') return 'Choose';
   if (phase === 'count') return count ? String(count) : '';
+  if (phase === 'cleared' && blot < 1) return 'Wait';
+  if (phase === 'cleared') return 'Levels';
   if (phase === 'over' && blot < 1) return 'Wait';
   if (phase === 'over') return 'Try again';
   return 'Jump';
@@ -64,12 +67,12 @@ export function buttonLabel(phase, blot, count) {
 const ZOOM_TIME = 0.7;
 
 export function sheetAmount(state, reducedMotion) {
-  if (state.phase === 'ready') return 1;
+  if (state.phase === 'menu' || state.phase === 'levels' || state.phase === 'ready') return 1;
   if (state.phase === 'count') return 0;
   if (state.phase === 'playing') {
     return reducedMotion ? 0 : 1 - clamp01(state.time / ZOOM_TIME);
   }
-  if (state.phase === 'over') {
+  if (state.phase === 'over' || state.phase === 'cleared') {
     if (reducedMotion || state.overAt == null) return 1;
     return clamp01((state.time - state.overAt - BLOT_TIME) / ZOOM_TIME);
   }
@@ -83,19 +86,50 @@ export function hintPulse(clock, reducedMotion) {
 }
 
 export function hintFor(state, blot) {
-  if (state.phase === 'ready') return 'tap to start';
-  if (state.phase === 'playing' && state.score === 0 && state.best === 0) {
+  if (state.phase === 'menu' || state.phase === 'levels') return '';
+  if (state.phase === 'cleared' && blot >= 1) return 'level cleared';
+  if (state.phase === 'playing' && state.score === 0 && state.best === 0 && !state.goal) {
     return 'jump as it swings under';
   }
-  if (state.phase === 'over' && blot >= 1) return 'tap to start';
+  if (state.phase === 'playing' && state.score === 0 && state.goal) {
+    return `${state.goal} skips to clear`;
+  }
+  if (state.phase === 'over' && blot >= 1) return 'tap to retry';
   return '';
+}
+
+function menuView(state, phone) {
+  return menuHits(phone).map((hit) => ({
+    ...hit,
+    selected: hit.index === state.focus,
+  }));
+}
+
+function levelsView(state, phone) {
+  return levelHits(phone).map((hit) => {
+    if (hit.id === 'back') {
+      return {
+        ...hit,
+        selected: hit.index === state.focus,
+        locked: false,
+      };
+    }
+    return {
+      ...hit,
+      selected: hit.index === state.focus,
+      locked: hit.level > state.unlocked,
+      done: hit.level <= state.cleared,
+    };
+  });
 }
 
 export function viewModel(state, options = {}) {
   const clock = Number.isFinite(options.clock) ? options.clock : state.time;
+  const phone = Boolean(options.phone);
   const blot = blotAmount(state, Boolean(options.reducedMotion));
   const count = countDigit(state);
   const progress = state.phase === 'playing' || state.phase === 'over' || state.phase === 'count'
+    || state.phase === 'cleared'
     ? ropeProgress(state)
     : { u: ((clock % 2.2) + 2.2) % 2.2 / 2.2, mood: 'even', angle: idleAngle(clock) };
 
@@ -111,13 +145,22 @@ export function viewModel(state, options = {}) {
     }
     : null;
 
+  const hint = hintFor(state, blot);
+
   return {
     phase: state.phase,
+    mode: state.mode,
+    level: state.level,
+    goal: state.goal,
+    unlocked: state.unlocked,
+    focus: state.focus,
+    progress: state.cleared,
+    won: state.phase === 'cleared',
     score: state.score,
     best: state.best,
-    showBest: state.best > 0,
+    showBest: state.best > 0 && state.mode !== 'level',
     crowned: Boolean(state.crowned) && state.score > 0,
-    pencil: state.cycle === 0 && state.phase !== 'over',
+    pencil: state.cycle === 0 && state.phase !== 'over' && state.phase !== 'cleared',
     dress: DRESSES[(Number.isFinite(state.dress) ? Math.abs(Math.floor(state.dress)) : 0) % DRESSES.length],
     pose: figurePose(state),
     lift: footClearance(state),
@@ -128,16 +171,19 @@ export function viewModel(state, options = {}) {
     u: progress.u,
     handLift: handLift(progress.mood, progress.u),
     spread: blot,
-    hint: hintFor(state, blot),
-    hintGlow: hintFor(state, blot) === 'tap to start'
+    hint,
+    hintGlow: hint === 'tap to retry' || hint === 'level cleared'
       ? hintPulse(clock, Boolean(options.reducedMotion))
       : 1,
     sheet,
     recap,
     count,
-    showScore: state.phase === 'playing' || state.phase === 'over',
+    showScore: state.phase === 'playing' || state.phase === 'over' || state.phase === 'cleared',
     fleck,
     label: buttonLabel(state.phase, blot, count),
-    waiting: (state.phase === 'over' && blot < 1) || state.phase === 'count',
+    waiting: ((state.phase === 'over' || state.phase === 'cleared') && blot < 1)
+      || state.phase === 'count',
+    menu: state.phase === 'menu' ? menuView(state, phone) : null,
+    levels: state.phase === 'levels' ? levelsView(state, phone) : null,
   };
 }

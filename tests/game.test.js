@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { AIRTIME, BLOT_TIME, COUNTDOWN, GRACE, MAX_FRAME, OPENING_SLACK } from '../src/config.js';
 import { DRESSES } from '../src/config.js';
-import { createState, feetUp, frame, press, step } from '../src/core/game.js';
+import { createState, feetUp, frame, goBack, press, steer, step } from '../src/core/game.js';
+import { levelHits } from '../src/core/menu.js';
 import { buildSentence } from '../src/core/sentence.js';
 
 function seek(state, time) {
@@ -32,11 +33,17 @@ function clearSkips(count, best = 0) {
 }
 
 describe('createState', () => {
-  it('stores a whole best count and starts on the title', () => {
-    expect(createState().phase).toBe('ready');
+  it('stores a whole best count and starts on the mode menu', () => {
+    expect(createState().phase).toBe('menu');
+    expect(createState().unlocked).toBe(1);
+    expect(createState().cleared).toBe(0);
     expect(createState(4.8).best).toBe(4);
     expect(createState(-3).best).toBe(0);
     expect(createState(Number.NaN).best).toBe(0);
+    expect(createState(0, 3.7).cleared).toBe(3);
+    expect(createState(0, 3.7).unlocked).toBe(4);
+    expect(createState(0, -2).cleared).toBe(0);
+    expect(createState(0, 99).cleared).toBe(10);
   });
 });
 
@@ -52,19 +59,20 @@ describe('feetUp', () => {
 });
 
 describe('a run', () => {
-  it('starts on the first press without spending a jump', () => {
+  it('starts infinity from the menu without spending a jump', () => {
     const ready = createState(2);
     const started = press(ready);
-    expect(ready.phase).toBe('ready');
+    expect(ready.phase).toBe('menu');
     expect(started.events).toEqual(['start']);
     expect(started.state.phase).toBe('count');
+    expect(started.state.mode).toBe('infinity');
     expect(started.state.score).toBe(0);
     expect(started.state.best).toBe(2);
     expect(started.state.jump).toBeNull();
     expect(started.state.nextContact).toBeCloseTo(
       COUNTDOWN + started.state.sentence[0].gap + OPENING_SLACK,
     );
-    expect(step(ready, 0.2).state.phase).toBe('ready');
+    expect(step(ready, 0.2).state.phase).toBe('menu');
     expect(step(ready, 0.2).events).toEqual([]);
 
     let state = started.state;
@@ -231,5 +239,89 @@ describe('frame', () => {
     expect(started.events).toEqual(['start']);
     expect(started.state.time).toBeCloseTo(MAX_FRAME);
     expect(started.state.phase).toBe('count');
+    expect(started.state.mode).toBe('infinity');
+  });
+
+  it('steers the menu and opens levels', () => {
+    const moved = frame(createState(), 0, { steer: 1 });
+    expect(moved.state.focus).toBe(1);
+    const levels = frame(moved.state, 0, { pressed: true });
+    expect(levels.state.phase).toBe('levels');
+    expect(levels.events).toEqual([]);
+    const locked = frame(levels.state, 0, { pressed: true, x: null, y: null });
+    expect(locked.state.phase).toBe('count');
+    expect(locked.state.mode).toBe('level');
+    expect(locked.state.level).toBe(1);
+    expect(locked.state.goal).toBe(10);
+  });
+});
+
+describe('levels', () => {
+  it('locks later stages until earlier ones clear', () => {
+    const menu = steer(createState(), 1);
+    const levels = press(menu).state;
+    expect(levels.phase).toBe('levels');
+    expect(levels.unlocked).toBe(1);
+    const blocked = press({ ...levels, focus: 3 });
+    expect(blocked.state.phase).toBe('levels');
+    expect(blocked.events).toEqual([]);
+    const back = press({ ...levels, focus: 10 });
+    expect(back.state.phase).toBe('menu');
+  });
+
+  it('clears a level when the goal is met and unlocks the next', () => {
+    let state = { ...press(createState()).state, mode: 'level', level: 1, goal: 10 };
+    for (let i = 0; i < 9; i += 1) {
+      const contact = state.nextContact;
+      state = press(seek(state, contact - 0.1).state).state;
+      state = seek(state, contact + 0.001).state;
+      expect(state.phase).toBe('playing');
+      expect(state.score).toBe(i + 1);
+    }
+    const contact = state.nextContact;
+    state = press(seek(state, contact - 0.1).state).state;
+    const cleared = seek(state, contact + 0.001);
+    expect(cleared.events).toContain('clear');
+    expect(cleared.state.phase).toBe('cleared');
+    expect(cleared.state.score).toBe(10);
+    expect(cleared.state.cleared).toBe(1);
+    expect(cleared.state.unlocked).toBe(2);
+    expect(press(cleared.state).events).toEqual([]);
+    let waited = cleared.state;
+    while (waited.time < waited.overAt + BLOT_TIME) waited = step(waited, MAX_FRAME).state;
+    const again = press(waited);
+    expect(again.state.phase).toBe('levels');
+    expect(again.state.unlocked).toBe(2);
+  });
+
+  it('returns to the menu with back', () => {
+    const levels = press(steer(createState(), 1)).state;
+    expect(goBack(levels).phase).toBe('menu');
+    const playing = press(createState()).state;
+    expect(goBack(playing).phase).toBe('menu');
+    const leveled = { ...playing, mode: 'level', level: 2, goal: 20 };
+    expect(goBack(leveled).phase).toBe('levels');
+    expect(goBack(createState()).phase).toBe('menu');
+    expect(steer(createState(), 0).focus).toBe(0);
+    expect(steer(press(createState()).state, 1).phase).toBe('count');
+    const over = {
+      ...createState(),
+      phase: 'over',
+      mode: 'infinity',
+      overAt: 1,
+      time: 1.1,
+    };
+    expect(goBack(over)).toBe(over);
+    expect(goBack({ ...over, time: 2, mode: 'level' }).phase).toBe('levels');
+    expect(goBack({ ...over, time: 2 }).phase).toBe('menu');
+    expect(frame(levels, 0, { back: true }).state.phase).toBe('menu');
+    const first = levelHits(false)[0];
+    const picked = press(levels, {
+      x: first.x + first.w / 2,
+      y: first.y + first.h / 2,
+      phone: false,
+    });
+    expect(picked.state.mode).toBe('level');
+    expect(picked.state.goal).toBe(10);
   });
 });
