@@ -259,17 +259,31 @@ function traceTriangle(ctx, body) {
   ctx.closePath();
 }
 
+function leotardTriangle(spec) {
+  const body = bodyTriangle(spec);
+  const height = body.tip.y - body.left.y;
+  const half = height * 0.88;
+  const x = body.tip.x;
+  return {
+    left: { x: x - half, y: body.left.y },
+    right: { x: x + half, y: body.right.y },
+    tip: { x, y: body.tip.y },
+  };
+}
+
 function heartPath(ctx, heart) {
   const { x, top, bottom, half } = heart;
-  const lobe = top + half * 0.62;
+  const h = bottom - top;
+  const lobe = top + h * 0.36;
+  const cleft = top + h * 0.24;
   ctx.beginPath();
   ctx.moveTo(x, bottom);
-  ctx.quadraticCurveTo(x - half * 0.2, bottom - (bottom - lobe) * 0.45, x - half, lobe);
-  ctx.quadraticCurveTo(x - half * 1.05, top - half * 0.05, x - half * 0.46, top + half * 0.08);
-  ctx.quadraticCurveTo(x - half * 0.16, top + half * 0.42, x, top + half * 0.28);
-  ctx.quadraticCurveTo(x + half * 0.16, top + half * 0.42, x + half * 0.46, top + half * 0.08);
-  ctx.quadraticCurveTo(x + half * 1.05, top - half * 0.05, x + half, lobe);
-  ctx.quadraticCurveTo(x + half * 0.2, bottom - (bottom - lobe) * 0.45, x, bottom);
+  ctx.quadraticCurveTo(x - half * 0.08, top + h * 0.7, x - half * 0.62, lobe + h * 0.12);
+  ctx.quadraticCurveTo(x - half * 1.12, lobe, x - half, top + h * 0.12);
+  ctx.quadraticCurveTo(x - half * 0.58, top - h * 0.04, x, cleft);
+  ctx.quadraticCurveTo(x + half * 0.58, top - h * 0.04, x + half, top + h * 0.12);
+  ctx.quadraticCurveTo(x + half * 1.12, lobe, x + half * 0.62, lobe + h * 0.12);
+  ctx.quadraticCurveTo(x + half * 0.08, top + h * 0.7, x, bottom);
   ctx.closePath();
 }
 
@@ -278,13 +292,21 @@ function heartInside(body) {
   const halfW = (body.right.x - body.left.x) / 2;
   return {
     x: body.tip.x,
-    top: body.left.y + height * 0.16,
-    bottom: body.left.y + height * 0.74,
-    half: halfW * 0.46,
+    top: body.left.y + height * 0.08,
+    bottom: body.left.y + height * 0.8,
+    half: halfW * 0.58,
   };
 }
 
-function armRoot(spec) {
+function armRoot(spec, character) {
+  if (character === 'ballerina') {
+    const fitted = bodyTriangle(spec);
+    const y = leotardTriangle(spec).left.y;
+    return [
+      { x: fitted.left.x, y },
+      { x: fitted.right.x, y },
+    ];
+  }
   const body = bodyTriangle(spec);
   return [
     { x: body.left.x, y: body.left.y },
@@ -293,12 +315,12 @@ function armRoot(spec) {
 }
 
 function drawBody(ctx, spec, colors, character) {
-  const body = bodyTriangle(spec);
+  const body = character === 'ballerina' ? leotardTriangle(spec) : bodyTriangle(spec);
   ctx.lineWidth = 2.4;
   ctx.lineJoin = 'round';
   ctx.strokeStyle = COLOR.ink;
   traceTriangle(ctx, body);
-  ctx.fillStyle = character === 'ballerina' ? colors.deep : colors.skirt;
+  ctx.fillStyle = character === 'ballerina' ? COLOR.ink : colors.skirt;
   ctx.fill();
   ctx.stroke();
   if (character !== 'ballerina') return;
@@ -308,14 +330,12 @@ function drawBody(ctx, spec, colors, character) {
   heartPath(ctx, heartInside(body));
   ctx.fillStyle = colors.skirt;
   ctx.fill();
-  ctx.lineWidth = 1.7;
-  ctx.stroke();
   ctx.restore();
 }
 
 function drawHands(ctx, spec, character) {
   const grips = gripsLocal(spec);
-  const shoulders = armRoot(spec);
+  const shoulders = armRoot(spec, character);
   const lift = character === 'ballerina' ? 4 : 12;
   ink(ctx, character === 'ballerina' ? 2.6 : 3.2, (pen) => {
     shoulders.forEach((shoulder, index) => {
@@ -559,19 +579,20 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
     ctx.beginPath();
-    ctx.moveTo(-16, -37);
-    ctx.lineTo(16, -37);
+    ctx.moveTo(-27, -37);
+    ctx.lineTo(27, -37);
     ctx.lineTo(0, -6);
     ctx.closePath();
+    ctx.fillStyle = locked ? COLOR.pencilLine : COLOR.ink;
+    ctx.strokeStyle = ctx.fillStyle;
     ctx.fill();
     ctx.lineWidth = 2;
     ctx.stroke();
-    heartPath(ctx, { x: 0, top: -33, bottom: -14, half: 7 });
-    ctx.fillStyle = COLOR.paper;
+    heartPath(ctx, { x: 0, top: -34, bottom: -13, half: 15 });
+    ctx.fillStyle = locked ? COLOR.paper : COLOR.cinnabar;
     ctx.fill();
     ctx.fillStyle = tone;
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
+    ctx.strokeStyle = tone;
     ctx.beginPath();
     ctx.arc(0, -46, 8, 0, Math.PI * 2);
     ctx.fill();
