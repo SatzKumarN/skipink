@@ -396,13 +396,33 @@ function inkSplash(seed) {
     const size = 0.26 + rand() * 0.2;
     return [Math.cos(turn) * dist, Math.sin(turn) * dist, size];
   });
-  const dots = Array.from({ length: 16 }, (_, index) => {
-    const turn = index === 0 ? 0.35 + rand() * 0.7 : spin + rand() * Math.PI * 2;
-    const dist = 1.04 + rand() * 0.2;
-    const size = index % 4 === 0 ? 2.3 + rand() * 1.7 : 1.05 + rand() * 0.85;
-    return [turn, dist, size, index % 3 === 0 ? 1 : 0];
-  });
-  return { kick, spin, radius, squash, waves, shift, lumps, dots };
+  const spots = Array.from({ length: 6 }, (_, index) => [
+    188 + rand() * 540,
+    108 + rand() * 370,
+    index % 2 === 0 ? 20 + rand() * 16 : 11 + rand() * 9,
+    0.78 + rand() * 0.32,
+    rand() * Math.PI * 2,
+  ]);
+  const specks = [
+    [176, 108],
+    [748, 124],
+    [188, 496],
+    [734, 478],
+  ].map(([x, y], index) => [
+    x + (rand() - 0.5) * 46,
+    y + (rand() - 0.5) * 36,
+    2.2 + rand() * 2.4,
+    index % 3,
+  ]);
+  for (let index = 0; index < 26; index += 1) {
+    specks.push([
+      168 + rand() * 590,
+      96 + rand() * 400,
+      index % 5 === 0 ? 6 + rand() * 7 : index % 2 === 0 ? 2.5 + rand() * 1.8 : 1.05 + rand() * 1.05,
+      index % 3,
+    ]);
+  }
+  return { kick, spin, radius, squash, waves, shift, lumps, spots, specks };
 }
 
 function fillEllipse(ctx, x, y, rx, ry, rotation) {
@@ -441,16 +461,14 @@ function drawSplash(ctx, vm) {
   const radius = splash.radius * (0.32 + 0.68 * grow);
   ctx.save();
   ctx.globalAlpha = Math.min(1, t / 0.08) * ctx.globalAlpha;
-  splash.dots.forEach(([angle, dist, size, ink]) => {
-    ctx.fillStyle = ink ? COLOR.ink : colors.skirt;
-    fillEllipse(
-      ctx,
-      ox + Math.cos(angle) * splash.radius * dist * grow,
-      oy + Math.sin(angle) * splash.radius * dist * grow * splash.squash,
-      size,
-      size * 0.88,
-      angle,
-    );
+  splash.spots.forEach(([x, y, reach, squash, turn], index) => {
+    const px = ox + (x - ox) * grow;
+    const py = oy + (y - oy) * grow;
+    const r = reach * (0.4 + 0.6 * grow);
+    ctx.fillStyle = index % 2 === 0 ? colors.skirt : colors.deep;
+    fillRoundBlot(ctx, px, py, r, squash, turn, splash.waves);
+    ctx.fillStyle = index % 2 === 0 ? colors.deep : COLOR.ink;
+    fillEllipse(ctx, px, py, r * 0.42, r * 0.36, turn);
   });
   ctx.fillStyle = colors.skirt;
   fillRoundBlot(ctx, ox, oy, radius, splash.squash, splash.spin, splash.waves);
@@ -476,6 +494,19 @@ function drawSplash(ctx, vm) {
   );
   ctx.fillStyle = COLOR.ink;
   fillEllipse(ctx, ox - radius * 0.06, oy + radius * 0.03, radius * 0.18, radius * 0.15, splash.spin);
+  splash.specks.forEach(([x, y, size, tone]) => {
+    if (tone === 0) ctx.fillStyle = COLOR.ink;
+    else if (tone === 1) ctx.fillStyle = colors.deep;
+    else ctx.fillStyle = colors.skirt;
+    fillEllipse(
+      ctx,
+      ox + (x - ox) * grow,
+      oy + (y - oy) * grow,
+      size,
+      size * 0.86,
+      splash.spin,
+    );
+  });
   ctx.restore();
 }
 

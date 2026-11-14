@@ -307,9 +307,8 @@ describe('drawScene', () => {
     const spanX = Math.max(...xs) - Math.min(...xs);
     const spanY = Math.max(...ys) - Math.min(...ys);
     expect(marks.length).toBeGreaterThan(16);
-    expect(spanX).toBeGreaterThan(90);
-    expect(spanY).toBeGreaterThan(90);
-    expect(Math.max(spanX, spanY) / Math.min(spanX, spanY)).toBeLessThan(1.6);
+    expect(spanX).toBeGreaterThan(400);
+    expect(spanY).toBeGreaterThan(240);
     expect(marks.some((call) => call[3] < 3 && call[4] < 3)).toBe(true);
     expect(settled.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
     expect(styleWas(settled, 'fillStyle', COLOR.ink)).toBe(true);
