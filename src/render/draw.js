@@ -671,54 +671,87 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
   ctx.restore();
 }
 
-function inkDropPath(ctx, cx, cy, rx, ry) {
+function splashSeed(hit) {
+  const key = String(hit?.id || hit?.label || hit?.index || 0);
+  let seed = 2166136261;
+  for (let i = 0; i < key.length; i += 1) {
+    seed ^= key.charCodeAt(i);
+    seed = Math.imul(seed, 16777619);
+  }
+  return (seed >>> 0) / 4294967296;
+}
+
+function splashWaves(seed) {
+  const rand = inkRand(0.17 + seed * 0.83);
+  return Array.from({ length: 14 }, () => rand());
+}
+
+function inkSplashPath(ctx, cx, cy, rx, ry, seed) {
+  const waves = splashWaves(seed);
+  const spin = seed * Math.PI * 2;
+  const steps = waves.length;
+  const pts = waves.map((wave, index) => {
+    const a = spin + (index / steps) * Math.PI * 2;
+    const lobe = index % 3 === 0 ? 0.22 : index % 2 === 0 ? 0.1 : 0;
+    const wobble = 0.78 + wave * 0.28 + lobe;
+    return [
+      cx + Math.cos(a) * rx * wobble,
+      cy + Math.sin(a) * ry * wobble,
+    ];
+  });
   ctx.beginPath();
-  ctx.moveTo(cx, cy - ry);
-  ctx.bezierCurveTo(
-    cx + rx * 0.14,
-    cy - ry * 0.42,
-    cx + rx,
-    cy - ry * 0.12,
-    cx + rx * 0.96,
-    cy + ry * 0.22,
-  );
-  ctx.bezierCurveTo(
-    cx + rx * 0.92,
-    cy + ry * 0.98,
-    cx - rx * 0.92,
-    cy + ry * 0.98,
-    cx - rx * 0.96,
-    cy + ry * 0.22,
-  );
-  ctx.bezierCurveTo(
-    cx - rx,
-    cy - ry * 0.12,
-    cx - rx * 0.14,
-    cy - ry * 0.42,
-    cx,
-    cy - ry,
-  );
+  ctx.moveTo((pts[0][0] + pts[steps - 1][0]) / 2, (pts[0][1] + pts[steps - 1][1]) / 2);
+  for (let i = 0; i < steps; i += 1) {
+    const next = pts[(i + 1) % steps];
+    ctx.quadraticCurveTo(pts[i][0], pts[i][1], (pts[i][0] + next[0]) / 2, (pts[i][1] + next[1]) / 2);
+  }
   ctx.closePath();
 }
 
-function drawInkDrop(ctx, hit, selected, locked) {
+function drawInkSplash(ctx, hit, selected, locked) {
   const cx = hit.x + hit.w / 2;
   const cy = hit.y + hit.h / 2;
-  const rx = hit.w * 0.38;
-  const ry = hit.h * 0.42;
-  inkDropPath(ctx, cx, cy, rx, ry);
+  const rx = hit.w * 0.42;
+  const ry = hit.h * 0.4;
+  const seed = splashSeed(hit);
+  inkSplashPath(ctx, cx, cy, rx, ry, seed);
   if (hit.done && !locked) {
     ctx.fillStyle = COLOR.cinnabar;
     ctx.globalAlpha = 0.12;
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
-    inkDropPath(ctx, cx, cy, rx, ry);
+    inkSplashPath(ctx, cx, cy, rx, ry, seed);
   }
   ctx.strokeStyle = locked
     ? COLOR.pencilLine
     : (selected ? COLOR.cinnabar : COLOR.ink);
   ctx.lineWidth = selected && !locked ? 3.2 : 2.2;
   ctx.stroke();
+  // Tiny satellite flecks so it reads as a splash, not a clean oval.
+  const rand = inkRand(0.41 + seed * 0.59);
+  ctx.fillStyle = locked
+    ? COLOR.pencilLine
+    : (selected ? COLOR.cinnabar : COLOR.ink);
+  for (let i = 0; i < 3; i += 1) {
+    const a = spinFor(seed, i);
+    const dist = 0.78 + rand() * 0.28;
+    const size = 1.4 + rand() * 2.2;
+    ctx.beginPath();
+    ctx.ellipse(
+      cx + Math.cos(a) * rx * dist,
+      cy + Math.sin(a) * ry * dist,
+      size,
+      size * (0.7 + rand() * 0.4),
+      a,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+}
+
+function spinFor(seed, index) {
+  return seed * Math.PI * 6 + index * 2.15;
 }
 
 function drawChoice(ctx, hit, phone) {
@@ -730,20 +763,20 @@ function drawChoice(ctx, hit, phone) {
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;
-  drawInkDrop(ctx, hit, selected, locked);
+  drawInkSplash(ctx, hit, selected, locked);
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   if (mode || back) {
     ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
     ctx.font = `${phone ? (mode ? 22 : 20) : (mode ? 28 : 24)}px ${PEN}`;
-    ctx.fillText(hit.label, cx, cy + (mode ? 4 : 2));
+    ctx.fillText(hit.label, cx, cy + (mode ? 2 : 1));
   } else {
     ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
     ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
-    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 8 : 10));
+    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
     ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
     ctx.font = `${phone ? 13 : 15}px ${PEN}`;
-    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 16 : 18));
+    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
   }
   ctx.restore();
 }

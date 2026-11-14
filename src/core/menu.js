@@ -20,10 +20,10 @@ export function menuZoom(phone) {
 
 export function menuHits(phone) {
   const title = titleAnchor(phone);
-  const w = phone ? 112 : 148;
-  const h = phone ? 124 : 164;
-  const gap = phone ? 18 : 36;
-  const startY = title.y + (phone ? 28 : 44);
+  const w = phone ? 124 : 156;
+  const h = phone ? 112 : 140;
+  const gap = phone ? 16 : 28;
+  const startY = title.y + (phone ? 24 : 36);
   const totalW = w * 2 + gap;
   const startX = title.x - totalW / 2;
   return menuChoices().map((choice, index) => ({
@@ -40,8 +40,8 @@ export function levelHits(phone) {
   const title = titleAnchor(phone);
   const cols = phone ? 2 : 5;
   const rows = Math.ceil(LEVELS.length / cols);
-  const cellW = phone ? 96 : 86;
-  const cellH = phone ? 50 : 66;
+  const cellW = phone ? 90 : 86;
+  const cellH = phone ? 54 : 70;
   const gapX = phone ? 10 : 10;
   const gapY = phone ? 2 : 4;
   const gridW = cols * cellW + (cols - 1) * gapX;

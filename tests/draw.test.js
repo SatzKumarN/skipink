@@ -326,11 +326,13 @@ describe('drawScene', () => {
         },
       ],
     }));
-    expect(levels.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'ellipse')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(true);
-    expect(menu.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'ellipse')).toBe(true);
 
     const over = mockContext();
     drawScene(over, 900, 640, scene({

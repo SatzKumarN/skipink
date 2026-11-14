@@ -41,7 +41,7 @@ describe('menu layout', () => {
     const back = desk.at(-1);
     expect(back.y + back.h).toBeLessThan(560);
     const modes = menuHits(false);
-    expect(modes[0].h).toBeGreaterThan(modes[0].w * 0.9);
+    expect(modes[0].w).toBeGreaterThan(modes[0].h * 0.9);
     expect(modes[0].x).toBeLessThan(modes[1].x);
     expect(desk[0].h).toBeGreaterThan(50);
     const page = pageFromScreen(100, 200, { ox: 10, oy: 20, s: 2 }, { x: 480, y: 250 }, 2);
