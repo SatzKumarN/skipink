@@ -65,10 +65,10 @@ export function levelHits(phone) {
     id: 'back',
     label: 'back',
     index: LEVELS.length,
-    x: title.x - (phone ? 44 : 50),
-    y: startY + rows * (cellH + gapY),
-    w: phone ? 88 : 100,
-    h: phone ? 42 : 52,
+    x: title.x - (phone ? 40 : 46),
+    y: startY + rows * (cellH + gapY) - (phone ? 2 : 4),
+    w: phone ? 80 : 92,
+    h: phone ? 52 : 60,
   }]);
 }
 
@@ -78,10 +78,10 @@ export function exitHit(phone) {
     id: 'back',
     label: 'back',
     index: 0,
-    x: title.x - (phone ? 136 : 168),
-    y: title.y + (phone ? 36 : 44),
-    w: phone ? 88 : 100,
-    h: phone ? 56 : 64,
+    x: title.x - (phone ? 132 : 162),
+    y: title.y + (phone ? 30 : 38),
+    w: phone ? 80 : 92,
+    h: phone ? 64 : 74,
   };
 }
 

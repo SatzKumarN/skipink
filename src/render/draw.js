@@ -754,6 +754,121 @@ function spinFor(seed, index) {
   return seed * Math.PI * 6 + index * 2.15;
 }
 
+function backBrushTone(selected, locked) {
+  if (locked) return COLOR.pencilLine;
+  if (selected) return COLOR.cinnabar;
+  return COLOR.ink;
+}
+
+function backCurvePoint(t, sx, sy) {
+  // U-turn ink smear: thin start at lower left, belly to the right, then
+  // the head finishes pointing left for "back".
+  const x = sx * (-0.38 + 0.96 * Math.sin(Math.PI * t));
+  const y = sy * (0.74 - 1.48 * t + 0.12 * Math.sin(Math.PI * t));
+  return { x, y };
+}
+
+function backBrushWidth(t) {
+  const belly = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
+  return 1.1 + belly * 7.4 + t * 1.6;
+}
+
+function paintBackArrow(ctx, hit, selected, locked) {
+  const cx = hit.x + hit.w / 2;
+  const cy = hit.y + hit.h / 2;
+  const sx = hit.w * 0.34;
+  const sy = hit.h * 0.38;
+  const seed = splashSeed(hit);
+  const rand = inkRand(0.29 + seed * 0.71);
+  const tone = backBrushTone(selected, locked);
+  const steps = 22;
+  const left = [];
+  const right = [];
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    const point = backCurvePoint(t, sx, sy);
+    const next = backCurvePoint(Math.min(1, t + 0.04), sx, sy);
+    const dx = next.x - point.x;
+    const dy = next.y - point.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const half = backBrushWidth(t) * (0.86 + rand() * 0.28);
+    const fray = (rand() - 0.5) * (0.6 + t * 1.4);
+    left.push([point.x + nx * half + nx * fray, point.y + ny * half + ny * fray * 0.6]);
+    right.push([point.x - nx * half - nx * fray * 0.7, point.y - ny * half - ny * fray * 0.5]);
+  }
+  const tip = backCurvePoint(1, sx, sy);
+  const prev = backCurvePoint(0.9, sx, sy);
+  const hx = tip.x - prev.x;
+  const hy = tip.y - prev.y;
+  const hlen = Math.hypot(hx, hy) || 1;
+  const ux = hx / hlen;
+  const uy = hy / hlen;
+  const px = -uy;
+  const py = ux;
+  const head = [
+    [tip.x + ux * sx * 0.22, tip.y + uy * sy * 0.18],
+    [tip.x - ux * sx * 0.08 + px * sx * 0.62, tip.y - uy * sy * 0.06 + py * sy * 0.5],
+    [tip.x - ux * sx * 0.18 + px * sx * 0.08, tip.y - uy * sy * 0.14 + py * sy * 0.04],
+    [tip.x - ux * sx * 0.08 - px * sx * 0.58, tip.y - uy * sy * 0.06 - py * sy * 0.48],
+  ];
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.fillStyle = tone;
+  ctx.beginPath();
+  ctx.moveTo(left[0][0], left[0][1]);
+  for (let i = 1; i < left.length; i += 1) ctx.lineTo(left[i][0], left[i][1]);
+  ctx.lineTo(head[1][0], head[1][1]);
+  ctx.lineTo(head[0][0], head[0][1]);
+  ctx.lineTo(head[3][0], head[3][1]);
+  for (let i = right.length - 1; i >= 0; i -= 1) ctx.lineTo(right[i][0], right[i][1]);
+  ctx.closePath();
+  ctx.fill();
+
+  // Dry-brush whiskers and satellite flecks along the smear.
+  ctx.strokeStyle = tone;
+  ctx.lineCap = 'round';
+  for (let i = 0; i < 7; i += 1) {
+    const t = 0.12 + rand() * 0.78;
+    const point = backCurvePoint(t, sx, sy);
+    const next = backCurvePoint(Math.min(1, t + 0.05), sx, sy);
+    const dx = next.x - point.x;
+    const dy = next.y - point.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len;
+    const ny = dx / len;
+    const side = rand() > 0.5 ? 1 : -1;
+    const reach = backBrushWidth(t) * (0.7 + rand() * 0.9);
+    ctx.lineWidth = 0.7 + rand() * 1.1;
+    ctx.beginPath();
+    ctx.moveTo(point.x + nx * side * reach * 0.35, point.y + ny * side * reach * 0.35);
+    ctx.lineTo(
+      point.x + nx * side * reach * (1.05 + rand() * 0.45),
+      point.y + ny * side * reach * (1.05 + rand() * 0.45),
+    );
+    ctx.stroke();
+  }
+  for (let i = 0; i < 5; i += 1) {
+    const t = rand();
+    const point = backCurvePoint(t, sx, sy);
+    const size = 0.9 + rand() * 1.8;
+    ctx.beginPath();
+    ctx.ellipse(
+      point.x + (rand() - 0.5) * sx * 0.35,
+      point.y + (rand() - 0.5) * sy * 0.3,
+      size,
+      size * (0.55 + rand() * 0.5),
+      rand() * Math.PI,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 function drawChoice(ctx, hit, phone) {
   const selected = Boolean(hit.selected);
   const locked = Boolean(hit.locked);
@@ -763,20 +878,24 @@ function drawChoice(ctx, hit, phone) {
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;
-  drawInkSplash(ctx, hit, selected, locked);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  if (mode || back) {
-    ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
-    ctx.font = `${phone ? (mode ? 22 : 20) : (mode ? 28 : 24)}px ${PEN}`;
-    ctx.fillText(hit.label, cx, cy + (mode ? 2 : 1));
+  if (back) {
+    paintBackArrow(ctx, hit, selected, locked);
   } else {
-    ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
-    ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
-    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
-    ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
-    ctx.font = `${phone ? 13 : 15}px ${PEN}`;
-    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
+    drawInkSplash(ctx, hit, selected, locked);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (mode) {
+      ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
+      ctx.font = `${phone ? 22 : 28}px ${PEN}`;
+      ctx.fillText(hit.label, cx, cy + 2);
+    } else {
+      ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
+      ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
+      ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
+      ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
+      ctx.font = `${phone ? 13 : 15}px ${PEN}`;
+      ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
+    }
   }
   ctx.restore();
 }
