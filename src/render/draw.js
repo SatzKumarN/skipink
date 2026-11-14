@@ -523,7 +523,7 @@ function titleSpot(sheet, phone) {
   const playX = phone ? 410 : 250;
   const cardX = phone ? 500 : 480;
   const playY = phone ? 96 : 120;
-  const cardY = phone ? 112 : 250;
+  const cardY = phone ? 100 : 236;
   return {
     x: playX + (cardX - playX) * sheet,
     y: playY + (cardY - playY) * sheet,

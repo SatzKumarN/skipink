@@ -35,9 +35,11 @@ describe('menu layout', () => {
     expect(desk).toHaveLength(11);
     expect(desk.at(-1).id).toBe('back');
     expect(phone.filter((hit) => hit.level)).toHaveLength(10);
-    expect(titleAnchor(true)).toEqual({ x: 500, y: 112 });
-    expect(menuZoom(false)).toBeCloseTo(1.36);
-    expect(menuZoom(true)).toBeCloseTo(1.1);
+    expect(titleAnchor(true)).toEqual({ x: 500, y: 100 });
+    expect(menuZoom(false)).toBeCloseTo(1.28);
+    expect(menuZoom(true)).toBeCloseTo(1.06);
+    const back = desk.at(-1);
+    expect(back.y + back.h).toBeLessThan(560);
     const modes = menuHits(false);
     expect(modes[0].h).toBeGreaterThan(modes[0].w * 0.9);
     expect(modes[0].x).toBeLessThan(modes[1].x);

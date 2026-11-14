@@ -10,12 +10,12 @@ export function menuChoices() {
 export function titleAnchor(phone) {
   return {
     x: phone ? 500 : 480,
-    y: phone ? 112 : 250,
+    y: phone ? 100 : 236,
   };
 }
 
 export function menuZoom(phone) {
-  return 1 + (phone ? 0.1 : 0.36);
+  return 1 + (phone ? 0.06 : 0.28);
 }
 
 export function menuHits(phone) {
@@ -40,13 +40,13 @@ export function levelHits(phone) {
   const title = titleAnchor(phone);
   const cols = phone ? 2 : 5;
   const rows = Math.ceil(LEVELS.length / cols);
-  const cellW = phone ? 100 : 90;
-  const cellH = phone ? 54 : 74;
-  const gapX = phone ? 12 : 12;
-  const gapY = phone ? 4 : 8;
+  const cellW = phone ? 96 : 86;
+  const cellH = phone ? 50 : 66;
+  const gapX = phone ? 10 : 10;
+  const gapY = phone ? 2 : 4;
   const gridW = cols * cellW + (cols - 1) * gapX;
   const startX = title.x - gridW / 2;
-  const startY = title.y + (phone ? 22 : 44);
+  const startY = title.y + (phone ? 18 : 36);
   return LEVELS.map((level, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
@@ -65,10 +65,10 @@ export function levelHits(phone) {
     id: 'back',
     label: 'back',
     index: LEVELS.length,
-    x: title.x - (phone ? 50 : 60),
-    y: startY + rows * (cellH + gapY) + (phone ? 2 : 4),
-    w: phone ? 100 : 120,
-    h: phone ? 48 : 70,
+    x: title.x - (phone ? 44 : 50),
+    y: startY + rows * (cellH + gapY),
+    w: phone ? 88 : 100,
+    h: phone ? 42 : 52,
   }]);
 }
 
