@@ -386,7 +386,7 @@ describe('drawScene', () => {
     expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(false);
     expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'ballerina')).toBe(false);
     expect(characters.calls.some((call) => call[0] === 'fillText' && call[1] === 'on')).toBe(false);
-    expect(characters.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(characters.calls.filter((call) => call[0] === 'ellipse')).toHaveLength(1);
     expect(styleWas(characters, 'fillStyle', COLOR.cinnabar)).toBe(true);
 
     const lockedPick = mockContext();
@@ -407,7 +407,7 @@ describe('drawScene', () => {
       ],
     }));
     expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(false);
-    expect(lockedPick.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(lockedPick.calls.filter((call) => call[0] === 'ellipse')).toHaveLength(1);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({
@@ -430,8 +430,8 @@ describe('drawScene', () => {
         },
       ],
     }));
-    expect(levels.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
-    expect(levels.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(false);
+    expect(levels.calls.some((call) => call[0] === 'ellipse')).toBe(false);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(false);
