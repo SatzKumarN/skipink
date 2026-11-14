@@ -284,40 +284,42 @@ describe('drawScene', () => {
     expect(fontFor(counting, 'skip')).toContain(BRUSH);
   });
 
-  it('bursts a miss into a black ink splash', () => {
-    const ctx = mockContext();
-    drawScene(ctx, 900, 640, scene({
-      blot: 1,
-      splash: 0.37,
-      lift: 0,
-      fleck: 0,
-      pencil: false,
-      pose: 'stumble',
-      hint: '',
-      showScore: false,
-    }));
-    const marks = ctx.calls.filter((call) => call[0] === 'ellipse');
+  it('sets a miss down as a round splash in the character color', () => {
+    const paint = (splash, blot = 1) => {
+      const ctx = mockContext();
+      drawScene(ctx, 900, 640, scene({
+        blot,
+        splash,
+        lift: 0,
+        fleck: 0,
+        pencil: false,
+        pose: 'stumble',
+        hint: '',
+        showScore: false,
+        dress: DRESSES[1],
+      }));
+      return ctx;
+    };
+    const settled = paint(0.37);
+    const marks = settled.calls.filter((call) => call[0] === 'ellipse');
     const xs = marks.map((call) => call[1]);
     const ys = marks.map((call) => call[2]);
+    const spanX = Math.max(...xs) - Math.min(...xs);
+    const spanY = Math.max(...ys) - Math.min(...ys);
     expect(marks.length).toBeGreaterThan(16);
-    expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(140);
-    expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(100);
+    expect(spanX).toBeGreaterThan(90);
+    expect(spanY).toBeGreaterThan(90);
+    expect(Math.max(spanX, spanY) / Math.min(spanX, spanY)).toBeLessThan(1.6);
     expect(marks.some((call) => call[3] < 3 && call[4] < 3)).toBe(true);
-    expect(ctx.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
-    expect(styleWas(ctx, 'fillStyle', COLOR.ink)).toBe(true);
-    expect(styleWas(ctx, 'fillStyle', COLOR.paper)).toBe(true);
-    const flying = mockContext();
-    drawScene(flying, 900, 640, scene({
-      blot: 0.12,
-      splash: 0.37,
-      lift: 0,
-      fleck: 0,
-      pencil: false,
-      pose: 'stumble',
-      hint: '',
-      showScore: false,
-    }));
-    const early = flying.calls.find((call) => call[0] === 'ellipse');
+    expect(settled.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
+    expect(styleWas(settled, 'fillStyle', COLOR.ink)).toBe(true);
+    expect(styleWas(settled, 'fillStyle', DRESSES[1].skirt)).toBe(true);
+    expect(styleWas(settled, 'fillStyle', DRESSES[1].deep)).toBe(true);
+    const other = paint(0.81);
+    const otherSpot = other.calls.find((call) => call[0] === 'quadraticCurveTo');
+    const spot = settled.calls.find((call) => call[0] === 'quadraticCurveTo');
+    expect(otherSpot[1]).not.toBe(spot[1]);
+    const early = paint(0.37, 0.12).calls.find((call) => call[0] === 'ellipse');
     expect(early[1]).not.toBe(marks[0][1]);
   });
 });
