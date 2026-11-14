@@ -303,15 +303,15 @@ function drawBallerinaHead(ctx, sx, hy) {
   ctx.beginPath();
   ctx.arc(sx, hy, 9, 0, Math.PI * 2);
   ctx.fill();
-  // Classical high bun with a clear ribbon loop so it reads apart from "bun".
+  // Classical high bun seated on the crown (centers ~hy-12 so the oval overlaps the head).
   ctx.beginPath();
-  ctx.ellipse(sx, hy - 18, 7.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(sx, hy - 12, 7.2, 6.2, 0, 0, Math.PI * 2);
   ctx.fill();
   ink(ctx, 2, (pen) => {
-    pen.moveTo(sx - 8, hy - 16);
-    pen.quadraticCurveTo(sx - 1, hy - 30, sx + 8, hy - 17);
-    pen.moveTo(sx + 8, hy - 17);
-    pen.quadraticCurveTo(sx + 1, hy - 12, sx - 3, hy - 15);
+    pen.moveTo(sx - 8, hy - 12);
+    pen.quadraticCurveTo(sx - 1, hy - 24, sx + 8, hy - 13);
+    pen.moveTo(sx + 8, hy - 13);
+    pen.quadraticCurveTo(sx + 1, hy - 9, sx - 3, hy - 11);
   });
   // Slim neck so the head sits above the triangle body.
   ink(ctx, 2.4, (pen) => {
@@ -405,13 +405,13 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.arc(0, -40, 8.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(0, -54, 6.2, 5.4, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -48, 6.2, 5.4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(-7, -52);
-    ctx.quadraticCurveTo(-1, -64, 6, -53);
-    ctx.quadraticCurveTo(1, -48, -2, -50);
+    ctx.moveTo(-7, -48);
+    ctx.quadraticCurveTo(-1, -58, 6, -49);
+    ctx.quadraticCurveTo(1, -45, -2, -47);
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(-12, -26);
