@@ -10,25 +10,27 @@ export function menuChoices() {
 export function titleAnchor(phone) {
   return {
     x: phone ? 500 : 480,
-    y: phone ? 168 : 250,
+    y: phone ? 100 : 236,
   };
 }
 
 export function menuZoom(phone) {
-  return 1 + (phone ? 0.18 : 0.42);
+  return 1 + (phone ? 0.06 : 0.28);
 }
 
 export function menuHits(phone) {
   const title = titleAnchor(phone);
-  const startY = title.y + (phone ? 72 : 92);
-  const gap = phone ? 52 : 58;
-  const w = phone ? 210 : 260;
-  const h = phone ? 42 : 48;
+  const w = phone ? 124 : 156;
+  const h = phone ? 112 : 140;
+  const gap = phone ? 16 : 28;
+  const startY = title.y + (phone ? 24 : 36);
+  const totalW = w * 2 + gap;
+  const startX = title.x - totalW / 2;
   return menuChoices().map((choice, index) => ({
     ...choice,
     index,
-    x: title.x - w / 2,
-    y: startY + index * gap - h / 2,
+    x: startX + index * (w + gap),
+    y: startY,
     w,
     h,
   }));
@@ -38,13 +40,13 @@ export function levelHits(phone) {
   const title = titleAnchor(phone);
   const cols = phone ? 2 : 5;
   const rows = Math.ceil(LEVELS.length / cols);
-  const cellW = phone ? 110 : 96;
-  const cellH = phone ? 52 : 54;
-  const gapX = phone ? 12 : 12;
-  const gapY = phone ? 10 : 10;
+  const cellW = phone ? 90 : 86;
+  const cellH = phone ? 54 : 70;
+  const gapX = phone ? 10 : 10;
+  const gapY = phone ? 2 : 4;
   const gridW = cols * cellW + (cols - 1) * gapX;
   const startX = title.x - gridW / 2;
-  const startY = title.y + (phone ? 48 : 56);
+  const startY = title.y + (phone ? 18 : 36);
   return LEVELS.map((level, index) => {
     const col = index % cols;
     const row = Math.floor(index / cols);
@@ -63,11 +65,24 @@ export function levelHits(phone) {
     id: 'back',
     label: 'back',
     index: LEVELS.length,
-    x: title.x - (phone ? 70 : 80),
-    y: startY + rows * (cellH + gapY) + (phone ? 4 : 6),
-    w: phone ? 140 : 160,
-    h: phone ? 32 : 34,
+    x: title.x - (phone ? 44 : 50),
+    y: startY + rows * (cellH + gapY),
+    w: phone ? 88 : 100,
+    h: phone ? 42 : 52,
   }]);
+}
+
+export function exitHit(phone) {
+  const title = titleAnchor(phone);
+  return {
+    id: 'back',
+    label: 'back',
+    index: 0,
+    x: title.x - (phone ? 136 : 168),
+    y: title.y + (phone ? 36 : 44),
+    w: phone ? 88 : 100,
+    h: phone ? 56 : 64,
+  };
 }
 
 export function pointInHit(hit, x, y) {

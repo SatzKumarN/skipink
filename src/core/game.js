@@ -9,7 +9,7 @@ import {
   OPENING_SLACK,
 } from '../config.js';
 import { unlockedLevel } from '../storage.js';
-import { hitAt, levelHits, menuHits } from './menu.js';
+import { exitHit, hitAt, levelHits, menuHits } from './menu.js';
 import { buildSentence } from './sentence.js';
 
 function safeCleared(cleared) {
@@ -183,6 +183,22 @@ export function goBack(state) {
   return state;
 }
 
+const CARD_ZOOM = 0.7;
+
+function leaveRun(state) {
+  if (state.mode === 'level') return openLevels(state);
+  return openMenu(state);
+}
+
+function runCardReady(state) {
+  return state.overAt != null && state.time - state.overAt >= BLOT_TIME + CARD_ZOOM;
+}
+
+function tappedExit(state, input = {}) {
+  if (!runCardReady(state)) return false;
+  return Boolean(hitAt([exitHit(Boolean(input.phone))], input.x, input.y));
+}
+
 export function press(state, input = {}) {
   if (state.phase === 'menu') return pickMenu(state, input);
   if (state.phase === 'levels') return pickLevel(state, input);
@@ -190,10 +206,12 @@ export function press(state, input = {}) {
     if (state.overAt != null && state.time - state.overAt < BLOT_TIME) {
       return { state, events: [] };
     }
+    if (tappedExit(state, input)) return openMenu(state);
     return openLevels(state);
   }
   if (state.phase === 'over') {
     if (state.time - state.overAt < BLOT_TIME) return { state, events: [] };
+    if (tappedExit(state, input)) return leaveRun(state);
     return startRun(state);
   }
   if (state.phase !== 'playing') return { state, events: [] };

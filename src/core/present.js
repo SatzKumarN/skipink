@@ -1,6 +1,6 @@
 import { AIRTIME, BLOT_TIME, COUNTDOWN, DRESSES } from '../config.js';
 import { clamp01 } from './math.js';
-import { levelHits, menuHits } from './menu.js';
+import { exitHit, levelHits, menuHits } from './menu.js';
 import { idleAngle, ropeProgress } from './rope.js';
 
 export function footClearance(state) {
@@ -94,7 +94,7 @@ export function hintFor(state, blot) {
   if (state.phase === 'playing' && state.score === 0 && state.goal) {
     return `${state.goal} skips to clear`;
   }
-  if (state.phase === 'over' && blot >= 1) return 'tap to retry';
+  if (state.phase === 'over' && blot >= 1) return 'tap drop to leave';
   return '';
 }
 
@@ -146,6 +146,9 @@ export function viewModel(state, options = {}) {
     : null;
 
   const hint = hintFor(state, blot);
+  const showExit = (state.phase === 'over' || state.phase === 'cleared')
+    && blot >= 1
+    && sheet >= 0.98;
 
   return {
     phase: state.phase,
@@ -172,7 +175,7 @@ export function viewModel(state, options = {}) {
     handLift: handLift(progress.mood, progress.u),
     spread: blot,
     hint,
-    hintGlow: hint === 'tap to retry' || hint === 'level cleared'
+    hintGlow: hint === 'tap drop to leave' || hint === 'level cleared'
       ? hintPulse(clock, Boolean(options.reducedMotion))
       : 1,
     sheet,
@@ -185,5 +188,6 @@ export function viewModel(state, options = {}) {
       || state.phase === 'count',
     menu: state.phase === 'menu' ? menuView(state, phone) : null,
     levels: state.phase === 'levels' ? levelsView(state, phone) : null,
+    exit: showExit ? { ...exitHit(phone), selected: false, locked: false } : null,
   };
 }

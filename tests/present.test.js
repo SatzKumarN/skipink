@@ -98,7 +98,7 @@ describe('copy', () => {
     expect(hintFor({ ...playing, score: 2 }, 0)).toBe('');
     expect(hintFor({ ...playing, best: 3 }, 0)).toBe('');
     expect(hintFor({ ...playing, goal: 10, score: 0 }, 0)).toBe('10 skips to clear');
-    expect(hintFor({ ...playing, phase: 'over' }, 1)).toBe('tap to retry');
+    expect(hintFor({ ...playing, phase: 'over' }, 1)).toBe('tap drop to leave');
     expect(hintFor({ ...playing, phase: 'over' }, 0.2)).toBe('');
     expect(hintFor({ ...playing, phase: 'cleared' }, 1)).toBe('level cleared');
     expect(hintPulse(0.25, false)).toBe(1);
@@ -195,13 +195,25 @@ describe('viewModel', () => {
     expect(done.waiting).toBe(false);
     expect(done.crowned).toBe(true);
     expect(done.fleck).toBe(0);
-    expect(done.hint).toBe('tap to retry');
+    expect(done.hint).toBe('tap drop to leave');
     expect(done.sheet).toBeCloseTo(0);
+    expect(done.exit).toBeNull();
     expect(sheetAmount({
       phase: 'over',
       overAt: state.time,
       time: state.time + BLOT_TIME + 0.7,
     }, false)).toBe(1);
+    const carded = viewModel({
+      ...state,
+      phase: 'over',
+      overAt: state.time,
+      time: state.time + BLOT_TIME + 0.7,
+      score: 3,
+      best: 1,
+      crowned: true,
+    });
+    expect(carded.sheet).toBe(1);
+    expect(carded.exit?.id).toBe('back');
     expect(done.recap).toBeNull();
 
     const opening = { ...state, time: 0.2, score: 0, best: 4, recap: { score: 3, best: 4, crowned: true } };

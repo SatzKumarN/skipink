@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LEVELS } from '../src/config.js';
 import {
+  exitHit,
   hitAt,
   levelHits,
   menuChoices,
@@ -34,11 +35,19 @@ describe('menu layout', () => {
     expect(desk).toHaveLength(11);
     expect(desk.at(-1).id).toBe('back');
     expect(phone.filter((hit) => hit.level)).toHaveLength(10);
-    expect(titleAnchor(true)).toEqual({ x: 500, y: 168 });
-    expect(menuZoom(false)).toBeCloseTo(1.42);
-    expect(menuZoom(true)).toBeCloseTo(1.18);
+    expect(titleAnchor(true)).toEqual({ x: 500, y: 100 });
+    expect(menuZoom(false)).toBeCloseTo(1.28);
+    expect(menuZoom(true)).toBeCloseTo(1.06);
+    const back = desk.at(-1);
+    expect(back.y + back.h).toBeLessThan(560);
+    const modes = menuHits(false);
+    expect(modes[0].w).toBeGreaterThan(modes[0].h * 0.9);
+    expect(modes[0].x).toBeLessThan(modes[1].x);
+    expect(desk[0].h).toBeGreaterThan(50);
     const page = pageFromScreen(100, 200, { ox: 10, oy: 20, s: 2 }, { x: 480, y: 250 }, 2);
     expect(page.x).toBeCloseTo((100 - 10) / 2 / 2 - 960 / 4 + 480);
     expect(page.y).toBeCloseTo((200 - 20) / 2 / 2 - 640 / 4 + 250);
+    expect(exitHit(false).id).toBe('back');
+    expect(exitHit(true).label).toBe('back');
   });
 });
