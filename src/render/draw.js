@@ -1,11 +1,64 @@
 import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
+import backArrowUrl from '../assets/back-arrow.png';
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
 
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
+
+let backArrowArt = null;
+const tintedBackArrows = new Map();
+
+export function setBackArrowArt(image) {
+  backArrowArt = image || null;
+  tintedBackArrows.clear();
+}
+
+function loadBackArrowArt() {
+  if (backArrowArt) return backArrowArt;
+  if (typeof Image === 'undefined') return null;
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = backArrowUrl;
+  backArrowArt = image;
+  return backArrowArt;
+}
+
+loadBackArrowArt();
+
+function artSize(image) {
+  const width = image?.naturalWidth || image?.width || 0;
+  const height = image?.naturalHeight || image?.height || 0;
+  if (!(width > 0 && height > 0)) return null;
+  return { width, height };
+}
+
+function tintBackArrow(image, tone, width, height) {
+  if (!image || !(width > 0) || !(height > 0)) return null;
+  if (tone === COLOR.ink) return image;
+  const key = `${tone}:${Math.round(width)}x${Math.round(height)}`;
+  const cached = tintedBackArrows.get(key);
+  if (cached) return cached;
+  if (typeof document === 'undefined' || !document.createElement) return image;
+  try {
+    const sheet = document.createElement('canvas');
+    sheet.width = Math.max(1, Math.round(width));
+    sheet.height = Math.max(1, Math.round(height));
+    const ink = sheet.getContext('2d');
+    if (!ink) return image;
+    ink.clearRect(0, 0, sheet.width, sheet.height);
+    ink.drawImage(image, 0, 0, sheet.width, sheet.height);
+    ink.globalCompositeOperation = 'source-in';
+    ink.fillStyle = tone;
+    ink.fillRect(0, 0, sheet.width, sheet.height);
+    tintedBackArrows.set(key, sheet);
+    return sheet;
+  } catch {
+    return image;
+  }
+}
 
 function phoneLayout(width, height) {
   return width > 0 && width < 760 && height > width;
@@ -760,113 +813,22 @@ function backBrushTone(selected, locked) {
   return COLOR.ink;
 }
 
-function backCurvePoint(t, sx, sy) {
-  // U-turn ink smear: thin start at lower left, belly to the right, then
-  // the head finishes pointing left for "back".
-  const x = sx * (-0.38 + 0.96 * Math.sin(Math.PI * t));
-  const y = sy * (0.74 - 1.48 * t + 0.12 * Math.sin(Math.PI * t));
-  return { x, y };
-}
-
-function backBrushWidth(t) {
-  const belly = Math.sin(Math.PI * Math.min(1, Math.max(0, t)));
-  return 1.1 + belly * 7.4 + t * 1.6;
-}
-
 function paintBackArrow(ctx, hit, selected, locked) {
-  const cx = hit.x + hit.w / 2;
-  const cy = hit.y + hit.h / 2;
-  const sx = hit.w * 0.34;
-  const sy = hit.h * 0.38;
-  const seed = splashSeed(hit);
-  const rand = inkRand(0.29 + seed * 0.71);
+  const image = loadBackArrowArt();
+  const size = artSize(image);
+  if (!size) return;
   const tone = backBrushTone(selected, locked);
-  const steps = 22;
-  const left = [];
-  const right = [];
-  for (let i = 0; i <= steps; i += 1) {
-    const t = i / steps;
-    const point = backCurvePoint(t, sx, sy);
-    const next = backCurvePoint(Math.min(1, t + 0.04), sx, sy);
-    const dx = next.x - point.x;
-    const dy = next.y - point.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len;
-    const ny = dx / len;
-    const half = backBrushWidth(t) * (0.86 + rand() * 0.28);
-    const fray = (rand() - 0.5) * (0.6 + t * 1.4);
-    left.push([point.x + nx * half + nx * fray, point.y + ny * half + ny * fray * 0.6]);
-    right.push([point.x - nx * half - nx * fray * 0.7, point.y - ny * half - ny * fray * 0.5]);
-  }
-  const tip = backCurvePoint(1, sx, sy);
-  const prev = backCurvePoint(0.9, sx, sy);
-  const hx = tip.x - prev.x;
-  const hy = tip.y - prev.y;
-  const hlen = Math.hypot(hx, hy) || 1;
-  const ux = hx / hlen;
-  const uy = hy / hlen;
-  const px = -uy;
-  const py = ux;
-  const head = [
-    [tip.x + ux * sx * 0.22, tip.y + uy * sy * 0.18],
-    [tip.x - ux * sx * 0.08 + px * sx * 0.62, tip.y - uy * sy * 0.06 + py * sy * 0.5],
-    [tip.x - ux * sx * 0.18 + px * sx * 0.08, tip.y - uy * sy * 0.14 + py * sy * 0.04],
-    [tip.x - ux * sx * 0.08 - px * sx * 0.58, tip.y - uy * sy * 0.06 - py * sy * 0.48],
-  ];
-
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.fillStyle = tone;
-  ctx.beginPath();
-  ctx.moveTo(left[0][0], left[0][1]);
-  for (let i = 1; i < left.length; i += 1) ctx.lineTo(left[i][0], left[i][1]);
-  ctx.lineTo(head[1][0], head[1][1]);
-  ctx.lineTo(head[0][0], head[0][1]);
-  ctx.lineTo(head[3][0], head[3][1]);
-  for (let i = right.length - 1; i >= 0; i -= 1) ctx.lineTo(right[i][0], right[i][1]);
-  ctx.closePath();
-  ctx.fill();
-
-  // Dry-brush whiskers and satellite flecks along the smear.
-  ctx.strokeStyle = tone;
-  ctx.lineCap = 'round';
-  for (let i = 0; i < 7; i += 1) {
-    const t = 0.12 + rand() * 0.78;
-    const point = backCurvePoint(t, sx, sy);
-    const next = backCurvePoint(Math.min(1, t + 0.05), sx, sy);
-    const dx = next.x - point.x;
-    const dy = next.y - point.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const nx = -dy / len;
-    const ny = dx / len;
-    const side = rand() > 0.5 ? 1 : -1;
-    const reach = backBrushWidth(t) * (0.7 + rand() * 0.9);
-    ctx.lineWidth = 0.7 + rand() * 1.1;
-    ctx.beginPath();
-    ctx.moveTo(point.x + nx * side * reach * 0.35, point.y + ny * side * reach * 0.35);
-    ctx.lineTo(
-      point.x + nx * side * reach * (1.05 + rand() * 0.45),
-      point.y + ny * side * reach * (1.05 + rand() * 0.45),
-    );
-    ctx.stroke();
-  }
-  for (let i = 0; i < 5; i += 1) {
-    const t = rand();
-    const point = backCurvePoint(t, sx, sy);
-    const size = 0.9 + rand() * 1.8;
-    ctx.beginPath();
-    ctx.ellipse(
-      point.x + (rand() - 0.5) * sx * 0.35,
-      point.y + (rand() - 0.5) * sy * 0.3,
-      size,
-      size * (0.55 + rand() * 0.5),
-      rand() * Math.PI,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
-  ctx.restore();
+  const fit = Math.min(hit.w / size.width, hit.h / size.height) * 0.94;
+  const width = size.width * fit;
+  const height = size.height * fit;
+  const art = tintBackArrow(image, tone, width, height) || image;
+  ctx.drawImage(
+    art,
+    hit.x + (hit.w - width) / 2,
+    hit.y + (hit.h - height) / 2,
+    width,
+    height,
+  );
 }
 
 function drawChoice(ctx, hit, phone) {
