@@ -251,17 +251,12 @@ function gripsWorld(vm) {
   return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
 }
 
-function torsoHeart(spec) {
-  const [, hy] = spec.head;
-  const [sx, sy] = spec.skirt;
-  const top = hy + 1;
-  const bottom = sy + 1;
-  return {
-    x: sx,
-    top,
-    bottom,
-    half: Math.max(15, (bottom - top) * 0.38),
-  };
+function traceTriangle(ctx, body) {
+  ctx.beginPath();
+  ctx.moveTo(body.left.x, body.left.y);
+  ctx.lineTo(body.right.x, body.right.y);
+  ctx.lineTo(body.tip.x, body.tip.y);
+  ctx.closePath();
 }
 
 function heartPath(ctx, heart) {
@@ -270,23 +265,26 @@ function heartPath(ctx, heart) {
   ctx.beginPath();
   ctx.moveTo(x, bottom);
   ctx.quadraticCurveTo(x - half * 0.2, bottom - (bottom - lobe) * 0.45, x - half, lobe);
-  ctx.quadraticCurveTo(x - half * 1.05, top - half * 0.08, x - half * 0.42, top + half * 0.22);
-  ctx.quadraticCurveTo(x - half * 0.08, top + half * 0.12, x, top + half * 0.16);
-  ctx.quadraticCurveTo(x + half * 0.08, top + half * 0.12, x + half * 0.42, top + half * 0.22);
-  ctx.quadraticCurveTo(x + half * 1.05, top - half * 0.08, x + half, lobe);
+  ctx.quadraticCurveTo(x - half * 1.05, top - half * 0.05, x - half * 0.46, top + half * 0.08);
+  ctx.quadraticCurveTo(x - half * 0.16, top + half * 0.42, x, top + half * 0.28);
+  ctx.quadraticCurveTo(x + half * 0.16, top + half * 0.42, x + half * 0.46, top + half * 0.08);
+  ctx.quadraticCurveTo(x + half * 1.05, top - half * 0.05, x + half, lobe);
   ctx.quadraticCurveTo(x + half * 0.2, bottom - (bottom - lobe) * 0.45, x, bottom);
   ctx.closePath();
 }
 
-function armRoot(spec, character) {
-  if (character === 'ballerina') {
-    const heart = torsoHeart(spec);
-    const y = heart.top + heart.half * 0.7;
-    return [
-      { x: heart.x - heart.half, y },
-      { x: heart.x + heart.half, y },
-    ];
-  }
+function heartInside(body) {
+  const height = body.tip.y - body.left.y;
+  const halfW = (body.right.x - body.left.x) / 2;
+  return {
+    x: body.tip.x,
+    top: body.left.y + height * 0.16,
+    bottom: body.left.y + height * 0.74,
+    half: halfW * 0.46,
+  };
+}
+
+function armRoot(spec) {
   const body = bodyTriangle(spec);
   return [
     { x: body.left.x, y: body.left.y },
@@ -295,31 +293,29 @@ function armRoot(spec, character) {
 }
 
 function drawBody(ctx, spec, colors, character) {
+  const body = bodyTriangle(spec);
   ctx.lineWidth = 2.4;
   ctx.lineJoin = 'round';
   ctx.strokeStyle = COLOR.ink;
-  if (character === 'ballerina') {
-    const heart = torsoHeart(spec);
-    heartPath(ctx, heart);
-    ctx.fillStyle = colors.deep;
-    ctx.fill();
-    ctx.stroke();
-    return;
-  }
-  const body = bodyTriangle(spec);
-  ctx.beginPath();
-  ctx.moveTo(body.left.x, body.left.y);
-  ctx.lineTo(body.right.x, body.right.y);
-  ctx.lineTo(body.tip.x, body.tip.y);
-  ctx.closePath();
-  ctx.fillStyle = colors.skirt;
+  traceTriangle(ctx, body);
+  ctx.fillStyle = character === 'ballerina' ? colors.deep : colors.skirt;
   ctx.fill();
   ctx.stroke();
+  if (character !== 'ballerina') return;
+  ctx.save();
+  traceTriangle(ctx, body);
+  ctx.clip();
+  heartPath(ctx, heartInside(body));
+  ctx.fillStyle = colors.skirt;
+  ctx.fill();
+  ctx.lineWidth = 1.7;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawHands(ctx, spec, character) {
   const grips = gripsLocal(spec);
-  const shoulders = armRoot(spec, character);
+  const shoulders = armRoot(spec);
   const lift = character === 'ballerina' ? 4 : 12;
   ink(ctx, character === 'ballerina' ? 2.6 : 3.2, (pen) => {
     shoulders.forEach((shoulder, index) => {
@@ -562,9 +558,19 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.globalAlpha = locked ? 0.2 : 0.35;
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
-    heartPath(ctx, { x: 0, top: -49, bottom: -12, half: 16 });
+    ctx.beginPath();
+    ctx.moveTo(-16, -37);
+    ctx.lineTo(16, -37);
+    ctx.lineTo(0, -6);
+    ctx.closePath();
     ctx.fill();
     ctx.lineWidth = 2;
+    ctx.stroke();
+    heartPath(ctx, { x: 0, top: -33, bottom: -14, half: 7 });
+    ctx.fillStyle = COLOR.paper;
+    ctx.fill();
+    ctx.fillStyle = tone;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, -46, 8, 0, Math.PI * 2);
