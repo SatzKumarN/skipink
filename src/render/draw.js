@@ -251,14 +251,41 @@ function gripsWorld(vm) {
   return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
 }
 
-function drawBody(ctx, spec, colors) {
+function shoulderLine(spec, character) {
   const body = bodyTriangle(spec);
+  const slim = character === 'ballerina' ? 0.66 : 1;
+  const sx = (body.left.x + body.right.x) / 2;
+  const raise = character === 'ballerina' ? 3 : 0;
+  return {
+    left: { x: sx + (body.left.x - sx) * slim, y: body.left.y - raise },
+    right: { x: sx + (body.right.x - sx) * slim, y: body.right.y - raise },
+    tip: body.tip,
+  };
+}
+
+function armRoot(spec, character) {
+  const body = shoulderLine(spec, character);
+  const along = character === 'ballerina' ? 0.2 : 0;
+  return [
+    {
+      x: body.left.x + (body.tip.x - body.left.x) * along,
+      y: body.left.y + (body.tip.y - body.left.y) * along,
+    },
+    {
+      x: body.right.x + (body.tip.x - body.right.x) * along,
+      y: body.right.y + (body.tip.y - body.right.y) * along,
+    },
+  ];
+}
+
+function drawBody(ctx, spec, colors, character) {
+  const body = shoulderLine(spec, character);
   ctx.beginPath();
   ctx.moveTo(body.left.x, body.left.y);
   ctx.lineTo(body.right.x, body.right.y);
   ctx.lineTo(body.tip.x, body.tip.y);
   ctx.closePath();
-  ctx.fillStyle = colors.skirt;
+  ctx.fillStyle = character === 'ballerina' ? colors.deep : colors.skirt;
   ctx.fill();
   ctx.strokeStyle = COLOR.ink;
   ctx.lineWidth = 2.4;
@@ -266,24 +293,25 @@ function drawBody(ctx, spec, colors) {
 }
 
 function drawHands(ctx, spec, character) {
-  const body = bodyTriangle(spec);
   const grips = gripsLocal(spec);
-  const shoulders = [
-    [body.left.x, body.left.y],
-    [body.right.x, body.right.y],
-  ];
-  const arch = character === 'ballerina' ? 18 : 12;
-  ink(ctx, character === 'ballerina' ? 2.8 : 3.2, (pen) => {
+  const shoulders = armRoot(spec, character);
+  const lift = character === 'ballerina' ? 4 : 12;
+  ink(ctx, character === 'ballerina' ? 2.6 : 3.2, (pen) => {
     shoulders.forEach((shoulder, index) => {
       const grip = grips[index];
-      pen.moveTo(shoulder[0], shoulder[1]);
-      pen.quadraticCurveTo((shoulder[0] + grip.x) / 2, shoulder[1] + arch, grip.x, grip.y);
+      pen.moveTo(shoulder.x, shoulder.y);
+      pen.quadraticCurveTo(
+        (shoulder.x + grip.x) / 2,
+        (shoulder.y + grip.y) / 2 + lift,
+        grip.x,
+        grip.y,
+      );
     });
   });
   ctx.fillStyle = COLOR.ink;
   grips.forEach((grip) => {
     ctx.beginPath();
-    ctx.arc(grip.x, grip.y, character === 'ballerina' ? 5.5 : 6.5, 0, Math.PI * 2);
+    ctx.arc(grip.x, grip.y, character === 'ballerina' ? 4.6 : 6.5, 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -298,45 +326,114 @@ function drawBunHead(ctx, sx, hy) {
   ctx.fill();
 }
 
+function fanPath(ctx, sx, sy, srx, sry) {
+  ctx.beginPath();
+  ctx.moveTo(sx, sy);
+  for (let i = 0; i <= 14; i += 1) {
+    const hem = umbrellaHem(sx, srx, sry, i / 14);
+    ctx.lineTo(hem.x, sy + hem.y);
+  }
+  ctx.closePath();
+}
+
+function drawTutu(ctx, spec, colors) {
+  const [sx, sy, srx, sry] = spec.skirt;
+  const top = sy + 2;
+  const rx = srx * 1.16;
+  const ry = sry * 0.4;
+  ctx.lineJoin = 'round';
+  fanPath(ctx, sx, top, rx, ry);
+  ctx.fillStyle = colors.skirt;
+  ctx.fill();
+  fanPath(ctx, sx, top + 2, rx * 0.7, ry * 0.58);
+  ctx.fillStyle = colors.deep;
+  ctx.fill();
+  fanPath(ctx, sx, top, rx, ry);
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2.3;
+  ctx.stroke();
+  ink(ctx, 1.45, (pen) => {
+    [0.16, 0.32, 0.5, 0.68, 0.84].forEach((t) => {
+      const hem = umbrellaHem(sx, rx, ry, t);
+      pen.moveTo(sx + (hem.x - sx) * 0.16, top + 1);
+      pen.lineTo(hem.x, top + hem.y * 0.92);
+    });
+  });
+}
+
+function drawPointe(ctx, x, y, dir, planted) {
+  ctx.fillStyle = COLOR.ink;
+  ctx.beginPath();
+  if (!planted) {
+    ctx.moveTo(x - dir * 0.4, y - 3);
+    ctx.quadraticCurveTo(x + dir * 7, y - 1.2, x + dir * 13, y + 2.4);
+    ctx.quadraticCurveTo(x + dir * 6, y + 4.8, x + dir * 0.4, y + 1.6);
+    ctx.closePath();
+    ctx.fill();
+    return;
+  }
+  const floor = 13.4;
+  ctx.moveTo(x, y - 2);
+  ctx.quadraticCurveTo(x + dir * 7, (y + floor) / 2, x + dir * 16, floor - 1.2);
+  ctx.lineTo(x + dir * 16, floor);
+  ctx.lineTo(x + dir * 2, floor);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function balletAnkles(spec) {
+  const leftY = spec.left[3];
+  const rightY = spec.right[3];
+  const planted = Math.min(leftY, rightY) >= 10;
+  if (!planted) {
+    const y = Math.min(leftY, rightY) + 5;
+    return {
+      planted,
+      left: { x: -8, y },
+      right: { x: 8, y: y + 2 },
+    };
+  }
+  return {
+    planted,
+    left: { x: spec.left[2] - 4, y: leftY - 8 },
+    right: { x: spec.right[2] + 4, y: rightY - 8 },
+  };
+}
+
 function drawBallerinaHead(ctx, sx, hy) {
   ctx.fillStyle = COLOR.ink;
   ctx.beginPath();
-  ctx.arc(sx, hy, 9, 0, Math.PI * 2);
+  ctx.arc(sx, hy, 9.2, 0, Math.PI * 2);
   ctx.fill();
-  // Classical high bun seated on the crown (centers ~hy-12 so the oval overlaps the head).
   ctx.beginPath();
-  ctx.ellipse(sx, hy - 12, 7.2, 6.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(sx, hy - 11.6, 4.6, 4.3, 0, 0, Math.PI * 2);
   ctx.fill();
-  ink(ctx, 2, (pen) => {
-    pen.moveTo(sx - 8, hy - 12);
-    pen.quadraticCurveTo(sx - 1, hy - 24, sx + 8, hy - 13);
-    pen.moveTo(sx + 8, hy - 13);
-    pen.quadraticCurveTo(sx + 1, hy - 9, sx - 3, hy - 11);
-  });
-  // Slim neck so the head sits above the triangle body.
-  ink(ctx, 2.4, (pen) => {
-    pen.moveTo(sx, hy + 8);
-    pen.lineTo(sx, hy + 16);
-  });
 }
 
 function drawLegs(ctx, spec, character) {
   const [sx, sy, , sry] = spec.skirt;
   const hem = sy + sry * 0.9;
   if (character === 'ballerina') {
-    ink(ctx, 2.6, (pen) => {
-      pen.moveTo(sx - 6, hem);
-      pen.quadraticCurveTo(spec.left[0] - 4, spec.left[1] - 2, spec.left[2] - 2, spec.left[3]);
-      pen.moveTo(sx + 6, hem);
-      pen.quadraticCurveTo(spec.right[0] + 4, spec.right[1] - 2, spec.right[2] + 2, spec.right[3]);
+    const hip = sy + 5;
+    const ankles = balletAnkles(spec);
+    ink(ctx, 3.2, (pen) => {
+      pen.moveTo(sx - 2, hip);
+      pen.quadraticCurveTo(
+        ankles.left.x - 3,
+        (hip + ankles.left.y) / 2,
+        ankles.left.x,
+        ankles.left.y,
+      );
+      pen.moveTo(sx + 2, hip);
+      pen.quadraticCurveTo(
+        ankles.right.x + 3,
+        (hip + ankles.right.y) / 2,
+        ankles.right.x,
+        ankles.right.y,
+      );
     });
-    // Pointed ballet shoes.
-    ink(ctx, 2.4, (pen) => {
-      pen.moveTo(spec.left[2] - 2, spec.left[3]);
-      pen.lineTo(spec.left[2] - 11, spec.left[3] + 3);
-      pen.moveTo(spec.right[2] + 2, spec.right[3]);
-      pen.lineTo(spec.right[2] + 11, spec.right[3] + 3);
-    });
+    drawPointe(ctx, ankles.left.x, ankles.left.y, -1, ankles.planted);
+    drawPointe(ctx, ankles.right.x, ankles.right.y, 1, ankles.planted);
     return;
   }
   ink(ctx, 3.6, (pen) => {
@@ -345,6 +442,19 @@ function drawLegs(ctx, spec, character) {
     pen.moveTo(sx + 4, hem);
     pen.quadraticCurveTo(spec.right[0], spec.right[1], spec.right[2], spec.right[3]);
   });
+}
+
+function drawBalletShoes(ctx, vm) {
+  if (figureKind(vm) !== 'ballerina') return;
+  const spec = poseOf(vm);
+  const ankles = balletAnkles(spec);
+  const y = FIGURE.ground - vm.lift * 46;
+  ctx.save();
+  ctx.translate(FIGURE.x, y);
+  ctx.rotate(spec.lean);
+  drawPointe(ctx, ankles.left.x, ankles.left.y, -1, ankles.planted);
+  drawPointe(ctx, ankles.right.x, ankles.right.y, 1, ankles.planted);
+  ctx.restore();
 }
 
 function figureKind(vm) {
@@ -361,25 +471,10 @@ function drawFigure(ctx, vm) {
   const [sx] = spec.skirt;
   const colors = dressColors(vm);
   drawLegs(ctx, spec, character);
-  if (character === 'ballerina') {
-    const outer = {
-      ...spec,
-      skirt: [spec.skirt[0], spec.skirt[1] + 4, spec.skirt[2] * 1.28, spec.skirt[3] * 1.18],
-    };
-    const inner = {
-      ...spec,
-      skirt: [spec.skirt[0], spec.skirt[1] + 8, spec.skirt[2] * 0.82, spec.skirt[3] * 0.72],
-    };
-    drawSkirt(ctx, outer, colors);
-    drawSkirt(ctx, inner, {
-      skirt: colors.deep,
-      deep: colors.skirt,
-    });
-  } else {
-    drawSkirt(ctx, spec, colors);
-  }
+  if (character === 'ballerina') drawTutu(ctx, spec, colors);
+  else drawSkirt(ctx, spec, colors);
   const [, hy] = spec.head;
-  drawBody(ctx, spec, colors);
+  drawBody(ctx, spec, colors, character);
   if (character === 'ballerina') drawBallerinaHead(ctx, sx, hy);
   else drawBunHead(ctx, sx, hy);
   drawHands(ctx, spec, character);
@@ -402,30 +497,27 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
   ctx.lineJoin = 'round';
   if (character === 'ballerina') {
     ctx.beginPath();
-    ctx.arc(0, -40, 8.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.ellipse(0, -48, 6.2, 5.4, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 1.6;
-    ctx.beginPath();
-    ctx.moveTo(-7, -48);
-    ctx.quadraticCurveTo(-1, -58, 6, -49);
-    ctx.quadraticCurveTo(1, -45, -2, -47);
+    ctx.moveTo(-3, -8);
+    ctx.quadraticCurveTo(-8, 4, -10, 16);
+    ctx.moveTo(3, -8);
+    ctx.quadraticCurveTo(8, 4, 10, 16);
+    ctx.lineWidth = 2.6;
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(-12, -26);
-    ctx.lineTo(12, -26);
-    ctx.lineTo(0, -2);
-    ctx.closePath();
+    ctx.moveTo(-10, 13);
+    ctx.quadraticCurveTo(-18, 15, -24, 19);
+    ctx.quadraticCurveTo(-15, 22.5, -8, 16.5);
+    ctx.moveTo(10, 13);
+    ctx.quadraticCurveTo(18, 15, 24, 19);
+    ctx.quadraticCurveTo(15, 22.5, 8, 16.5);
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(0, -10);
-    for (let i = 0; i <= 12; i += 1) {
-      const t = i / 12;
-      const x = (t - 0.5) * 68;
+    ctx.moveTo(0, -14);
+    for (let i = 0; i <= 14; i += 1) {
+      const t = i / 14;
+      const x = (t - 0.5) * 78;
       const droop = Math.sin(t * Math.PI);
-      ctx.lineTo(x, -2 + droop * 26);
+      ctx.lineTo(x, -14 + 8 + droop * 14);
     }
     ctx.closePath();
     ctx.globalAlpha = locked ? 0.35 : 0.55;
@@ -434,24 +526,38 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.beginPath();
-    ctx.moveTo(0, -4);
+    ctx.moveTo(0, -12);
     for (let i = 0; i <= 10; i += 1) {
       const t = i / 10;
-      const x = (t - 0.5) * 42;
+      const x = (t - 0.5) * 46;
       const droop = Math.sin(t * Math.PI);
-      ctx.lineTo(x, 2 + droop * 14);
+      ctx.lineTo(x, -8 + droop * 8);
     }
     ctx.closePath();
     ctx.globalAlpha = locked ? 0.2 : 0.35;
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
-    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.moveTo(-8, 8);
-    ctx.lineTo(-16, 14);
-    ctx.moveTo(8, 8);
-    ctx.lineTo(16, 14);
-    ctx.stroke();
+    ctx.moveTo(-8, -32);
+    ctx.lineTo(8, -32);
+    ctx.lineTo(0, -14);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(-3, -38);
+    ctx.lineTo(3, -38);
+    ctx.lineTo(3.6, -30);
+    ctx.lineTo(-3.6, -30);
+    ctx.closePath();
+    ctx.globalAlpha = locked ? 0.45 : 0.7;
+    ctx.fill();
+    ctx.globalAlpha = locked ? 0.4 : 1;
+    ctx.beginPath();
+    ctx.arc(0, -46, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(0, -55.2, 4.5, 4.1, 0, 0, Math.PI * 2);
+    ctx.fill();
   } else {
     ctx.beginPath();
     ctx.arc(0, -36, 10, 0, Math.PI * 2);
@@ -817,6 +923,7 @@ function drawPlay(ctx, vm, sheet) {
     drawShadow(ctx, vm.lift);
     drawFigure(ctx, vm);
     drawRope(ctx, vm, false, false);
+    drawBalletShoes(ctx, vm);
     ctx.restore();
   }
   if (vm.fleck > 0) drawFleck(ctx, vm);

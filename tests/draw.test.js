@@ -243,6 +243,16 @@ describe('drawScene', () => {
         handLift: -0.08,
         spread: 0,
       }));
+      drawScene(mockContext(), 800, 600, scene({
+        character: 'ballerina',
+        pose,
+        pencil: false,
+        showScore: false,
+        hint: '',
+        fleck: 0,
+        blot: 0,
+        angle: pose === 'tuck' ? BOTTOM : TOP,
+      }));
     });
 
     const ballerina = mockContext();
