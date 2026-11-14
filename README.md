@@ -43,3 +43,7 @@ Coverage is required at 95% lines, branches, functions, and statements. `src/mai
 ## GitHub Pages
 
 Pushes to `main` run the tests, build the static page, and deploy `dist`. The site path is relative, so it works as a project page or a user page.
+
+## License
+
+The game code is under the MIT License. Simple Inkdrop, the font in `src/fonts/SimpleInkdrop.woff`, keeps the personal-use terms published by its designer, creativeletter. Both are written out in [LICENSE](LICENSE).
