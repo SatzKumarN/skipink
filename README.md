@@ -23,6 +23,10 @@ Kalam draws "skips", "best", "new", and the hints. Copyright 2014 Indian Type Fo
 
 Both licenses allow this game to bundle the files and serve them from GitHub Pages. The fonts stay under the Open Font License and are not sold on their own. If a face fails to load, the canvas falls back to Georgia.
 
+## Art
+
+The curved back arrow is the artistic black brush arrow from ImgBin (uploader Roonix), bundled as `src/assets/back-arrow.png`. Source: [imgbin.com/png/gSsVWtWf](https://imgbin.com/png/gSsVWtWf/black-curved-arrow-artistic-black-brush-arrow-png). The page marks it for commercial use; ImgBin's terms still put download and reuse risk on the project owner.
+
 ## Layout
 
 - `src/core` keeps the rules: sentences, rope motion, scoring, and the on-page view model

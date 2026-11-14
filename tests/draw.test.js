@@ -1,8 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { COLOR, DRESSES } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
-import { drawScene } from '../src/render/draw.js';
+import { drawScene, setBackArrowArt } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
+
+const BACK_ARROW = {
+  complete: true,
+  naturalWidth: 100,
+  naturalHeight: 120,
+  width: 100,
+  height: 120,
+};
+
+setBackArrowArt(BACK_ARROW);
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
@@ -322,7 +332,7 @@ describe('drawScene', () => {
         },
         {
           id: 'back', label: 'back', index: 2,
-          x: 400, y: 500, w: 140, h: 36, selected: false, locked: false,
+          x: 400, y: 500, w: 96, h: 74, selected: false, locked: false,
         },
       ],
     }));
@@ -331,6 +341,7 @@ describe('drawScene', () => {
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(false);
+    expect(levels.calls.some((call) => call[0] === 'drawImage' && call[1] === BACK_ARROW)).toBe(true);
     expect(menu.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
     expect(menu.calls.some((call) => call[0] === 'ellipse')).toBe(true);
 
@@ -344,12 +355,11 @@ describe('drawScene', () => {
       hintGlow: 1,
       exit: {
         id: 'back', label: 'back', index: 0,
-        x: 312, y: 294, w: 100, h: 64, selected: false, locked: false,
+        x: 312, y: 294, w: 96, h: 84, selected: true, locked: false,
       },
     }));
     expect(over.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(false);
-    expect(over.calls.some((call) => call[0] === 'ellipse')).toBe(true);
-    expect(over.calls.some((call) => call[0] === 'stroke')).toBe(true);
+    expect(over.calls.some((call) => call[0] === 'drawImage')).toBe(true);
 
     const cleared = mockContext();
     drawScene(cleared, 900, 640, scene({
