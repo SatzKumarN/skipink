@@ -2,31 +2,44 @@ import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
 import backArrowUrl from '../assets/back-arrow.png';
+import infinitySymbolUrl from '../assets/infinity-symbol.png';
+import levelsSymbolUrl from '../assets/levels-symbol.png';
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
 
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 
-let backArrowArt = null;
-const tintedBackArrows = new Map();
+const BRUSH_ART = {
+  back: { url: backArrowUrl, image: null, tints: new Map() },
+  infinity: { url: infinitySymbolUrl, image: null, tints: new Map() },
+  levels: { url: levelsSymbolUrl, image: null, tints: new Map() },
+};
 
 export function setBackArrowArt(image) {
-  backArrowArt = image || null;
-  tintedBackArrows.clear();
+  setBrushArt('back', image);
 }
 
-function loadBackArrowArt() {
-  if (backArrowArt) return backArrowArt;
+export function setBrushArt(id, image) {
+  const slot = BRUSH_ART[id];
+  if (!slot) return;
+  slot.image = image || null;
+  slot.tints.clear();
+}
+
+function loadBrushArt(id) {
+  const slot = BRUSH_ART[id];
+  if (!slot) return null;
+  if (slot.image) return slot.image;
   if (typeof Image === 'undefined') return null;
   const image = new Image();
   image.decoding = 'async';
-  image.src = backArrowUrl;
-  backArrowArt = image;
-  return backArrowArt;
+  image.src = slot.url;
+  slot.image = image;
+  return slot.image;
 }
 
-loadBackArrowArt();
+Object.keys(BRUSH_ART).forEach(loadBrushArt);
 
 function artSize(image) {
   const width = image?.naturalWidth || image?.width || 0;
@@ -35,11 +48,13 @@ function artSize(image) {
   return { width, height };
 }
 
-function tintBackArrow(image, tone, width, height) {
+function tintBrushArt(id, image, tone, width, height) {
   if (!image || !(width > 0) || !(height > 0)) return null;
   if (tone === COLOR.ink) return image;
+  const slot = BRUSH_ART[id];
+  if (!slot) return image;
   const key = `${tone}:${Math.round(width)}x${Math.round(height)}`;
-  const cached = tintedBackArrows.get(key);
+  const cached = slot.tints.get(key);
   if (cached) return cached;
   if (typeof document === 'undefined' || !document.createElement) return image;
   try {
@@ -53,7 +68,7 @@ function tintBackArrow(image, tone, width, height) {
     ink.globalCompositeOperation = 'source-in';
     ink.fillStyle = tone;
     ink.fillRect(0, 0, sheet.width, sheet.height);
-    tintedBackArrows.set(key, sheet);
+    slot.tints.set(key, sheet);
     return sheet;
   } catch {
     return image;
@@ -807,21 +822,21 @@ function spinFor(seed, index) {
   return seed * Math.PI * 6 + index * 2.15;
 }
 
-function backBrushTone(selected, locked) {
+function brushTone(selected, locked) {
   if (locked) return COLOR.pencilLine;
   if (selected) return COLOR.cinnabar;
   return COLOR.ink;
 }
 
-function paintBackArrow(ctx, hit, selected, locked) {
-  const image = loadBackArrowArt();
+function paintBrushSymbol(ctx, hit, selected, locked, id, scale = 0.94) {
+  const image = loadBrushArt(id);
   const size = artSize(image);
   if (!size) return;
-  const tone = backBrushTone(selected, locked);
-  const fit = Math.min(hit.w / size.width, hit.h / size.height) * 0.94;
+  const tone = brushTone(selected, locked);
+  const fit = Math.min(hit.w / size.width, hit.h / size.height) * scale;
   const width = size.width * fit;
   const height = size.height * fit;
-  const art = tintBackArrow(image, tone, width, height) || image;
+  const art = tintBrushArt(id, image, tone, width, height) || image;
   ctx.drawImage(
     art,
     hit.x + (hit.w - width) / 2,
@@ -841,23 +856,20 @@ function drawChoice(ctx, hit, phone) {
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;
   if (back) {
-    paintBackArrow(ctx, hit, selected, locked);
+    paintBrushSymbol(ctx, hit, selected, locked, 'back');
+  } else if (mode) {
+    drawInkSplash(ctx, hit, selected, locked);
+    paintBrushSymbol(ctx, hit, selected, locked, hit.id, 0.72);
   } else {
     drawInkSplash(ctx, hit, selected, locked);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    if (mode) {
-      ctx.fillStyle = locked ? COLOR.pencilLine : (selected ? COLOR.cinnabar : COLOR.ink);
-      ctx.font = `${phone ? 22 : 28}px ${PEN}`;
-      ctx.fillText(hit.label, cx, cy + 2);
-    } else {
-      ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
-      ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
-      ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
-      ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
-      ctx.font = `${phone ? 13 : 15}px ${PEN}`;
-      ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
-    }
+    ctx.fillStyle = locked ? COLOR.pencil : (selected ? COLOR.cinnabar : COLOR.ink);
+    ctx.font = `${phone ? 24 : 28}px ${BRUSH}`;
+    ctx.fillText(locked ? '—' : hit.label, cx, cy - (phone ? 6 : 8));
+    ctx.fillStyle = hit.done ? COLOR.cinnabar : COLOR.pencil;
+    ctx.font = `${phone ? 13 : 15}px ${PEN}`;
+    ctx.fillText(locked ? 'locked' : (hit.done ? 'done' : `${hit.goal}`), cx, cy + (phone ? 14 : 16));
   }
   ctx.restore();
 }

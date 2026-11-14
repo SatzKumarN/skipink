@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-On the title page choose **infinity** for an open run, or **levels** for ten staged sheets (10 skips, then 20, up to 100). Locked levels open after you clear the one before. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count and cleared levels stay in the browser.
+On the title page choose the paint-smear ∞ for an open run, or the rising signal bars for ten staged sheets (10 skips, then 20, up to 100). Locked levels open after you clear the one before. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count and cleared levels stay in the browser.
 
 ## Fonts
 
@@ -26,6 +26,8 @@ Both licenses allow this game to bundle the files and serve them from GitHub Pag
 ## Art
 
 The curved back arrow is the artistic black brush arrow from ImgBin (uploader Roonix), bundled as `src/assets/back-arrow.png`. Source: [imgbin.com/png/gSsVWtWf](https://imgbin.com/png/gSsVWtWf/black-curved-arrow-artistic-black-brush-arrow-png). The page marks it for commercial use; ImgBin's terms still put download and reuse risk on the project owner.
+
+Mode choices use original paint-smear symbols: `src/assets/infinity-symbol.png` (∞) and `src/assets/levels-symbol.png` (rising bars). They tint the same way as the back arrow.
 
 ## Layout
 

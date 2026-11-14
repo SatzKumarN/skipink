@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { COLOR, DRESSES } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
-import { drawScene, setBackArrowArt } from '../src/render/draw.js';
+import { drawScene, setBackArrowArt, setBrushArt } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
 
 const BACK_ARROW = {
@@ -12,7 +12,25 @@ const BACK_ARROW = {
   height: 120,
 };
 
+const INFINITY_SYMBOL = {
+  complete: true,
+  naturalWidth: 100,
+  naturalHeight: 100,
+  width: 100,
+  height: 100,
+};
+
+const LEVELS_SYMBOL = {
+  complete: true,
+  naturalWidth: 100,
+  naturalHeight: 100,
+  width: 100,
+  height: 100,
+};
+
 setBackArrowArt(BACK_ARROW);
+setBrushArt('infinity', INFINITY_SYMBOL);
+setBrushArt('levels', LEVELS_SYMBOL);
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
@@ -312,8 +330,10 @@ describe('drawScene', () => {
         },
       ],
     }));
-    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'infinity')).toBe(true);
-    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'levels')).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'infinity')).toBe(false);
+    expect(menu.calls.some((call) => call[0] === 'fillText' && call[1] === 'levels')).toBe(false);
+    expect(menu.calls.some((call) => call[0] === 'drawImage' && call[1] === INFINITY_SYMBOL)).toBe(true);
+    expect(menu.calls.some((call) => call[0] === 'drawImage' && call[1] === LEVELS_SYMBOL)).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({
