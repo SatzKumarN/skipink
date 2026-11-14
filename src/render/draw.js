@@ -251,44 +251,58 @@ function gripsWorld(vm) {
   return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
 }
 
-function shoulderLine(spec, character) {
-  const body = bodyTriangle(spec);
-  const slim = character === 'ballerina' ? 0.66 : 1;
-  const sx = (body.left.x + body.right.x) / 2;
-  const raise = character === 'ballerina' ? 3 : 0;
+function torsoOval(spec) {
+  const [, hy] = spec.head;
+  const [sx, sy] = spec.skirt;
+  const top = hy + 12;
+  const bottom = sy + 2;
+  const ry = Math.max(8, (bottom - top) / 2);
   return {
-    left: { x: sx + (body.left.x - sx) * slim, y: body.left.y - raise },
-    right: { x: sx + (body.right.x - sx) * slim, y: body.right.y - raise },
-    tip: body.tip,
+    x: sx,
+    y: top + ry,
+    rx: ry * 0.58,
+    ry,
   };
 }
 
 function armRoot(spec, character) {
-  const body = shoulderLine(spec, character);
-  const along = character === 'ballerina' ? 0.2 : 0;
+  if (character === 'ballerina') {
+    const oval = torsoOval(spec);
+    return [-1, 1].map((dir) => {
+      const turn = dir < 0 ? Math.PI + 0.7 : -0.7;
+      return {
+        x: oval.x + Math.cos(turn) * oval.rx,
+        y: oval.y + Math.sin(turn) * oval.ry,
+      };
+    });
+  }
+  const body = bodyTriangle(spec);
   return [
-    {
-      x: body.left.x + (body.tip.x - body.left.x) * along,
-      y: body.left.y + (body.tip.y - body.left.y) * along,
-    },
-    {
-      x: body.right.x + (body.tip.x - body.right.x) * along,
-      y: body.right.y + (body.tip.y - body.right.y) * along,
-    },
+    { x: body.left.x, y: body.left.y },
+    { x: body.right.x, y: body.right.y },
   ];
 }
 
 function drawBody(ctx, spec, colors, character) {
-  const body = shoulderLine(spec, character);
+  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = COLOR.ink;
+  if (character === 'ballerina') {
+    const oval = torsoOval(spec);
+    ctx.beginPath();
+    ctx.ellipse(oval.x, oval.y, oval.rx, oval.ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = colors.deep;
+    ctx.fill();
+    ctx.stroke();
+    return;
+  }
+  const body = bodyTriangle(spec);
   ctx.beginPath();
   ctx.moveTo(body.left.x, body.left.y);
   ctx.lineTo(body.right.x, body.right.y);
   ctx.lineTo(body.tip.x, body.tip.y);
   ctx.closePath();
-  ctx.fillStyle = character === 'ballerina' ? colors.deep : colors.skirt;
+  ctx.fillStyle = colors.skirt;
   ctx.fill();
-  ctx.strokeStyle = COLOR.ink;
-  ctx.lineWidth = 2.4;
   ctx.stroke();
 }
 
@@ -538,20 +552,10 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
     ctx.fill();
     ctx.globalAlpha = locked ? 0.4 : 1;
     ctx.beginPath();
-    ctx.moveTo(-8, -32);
-    ctx.lineTo(8, -32);
-    ctx.lineTo(0, -14);
-    ctx.closePath();
+    ctx.ellipse(0, -26, 9, 14, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-3, -38);
-    ctx.lineTo(3, -38);
-    ctx.lineTo(3.6, -30);
-    ctx.lineTo(-3.6, -30);
-    ctx.closePath();
-    ctx.globalAlpha = locked ? 0.45 : 0.7;
-    ctx.fill();
-    ctx.globalAlpha = locked ? 0.4 : 1;
+    ctx.lineWidth = 2;
+    ctx.stroke();
     ctx.beginPath();
     ctx.arc(0, -46, 8, 0, Math.PI * 2);
     ctx.fill();
