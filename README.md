@@ -25,9 +25,7 @@ Both licenses allow this game to bundle the files and serve them from GitHub Pag
 
 ## Art
 
-The curved back arrow is the artistic black brush arrow from ImgBin (uploader Roonix), bundled as `src/assets/back-arrow.png`. Source: [imgbin.com/png/gSsVWtWf](https://imgbin.com/png/gSsVWtWf/black-curved-arrow-artistic-black-brush-arrow-png). The page marks it for commercial use; ImgBin's terms still put download and reuse risk on the project owner.
-
-Mode choices use original paint-smear symbols: `src/assets/infinity-symbol.png` (∞) and `src/assets/levels-symbol.png` (rising bars). They tint the same way as the back arrow.
+Menu controls use original paint-smear symbols that tint the same way: `src/assets/infinity-symbol.png` (∞), `src/assets/levels-symbol.png` (rising bars), and `src/assets/back-symbol.png` (curved return arrow).
 
 ## Layout
 

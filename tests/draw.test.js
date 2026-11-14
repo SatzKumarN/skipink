@@ -4,12 +4,12 @@ import { BOTTOM, TOP } from '../src/core/rope.js';
 import { drawScene, setBackArrowArt, setBrushArt } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
 
-const BACK_ARROW = {
+const BACK_SYMBOL = {
   complete: true,
   naturalWidth: 100,
-  naturalHeight: 120,
+  naturalHeight: 100,
   width: 100,
-  height: 120,
+  height: 100,
 };
 
 const INFINITY_SYMBOL = {
@@ -28,7 +28,7 @@ const LEVELS_SYMBOL = {
   height: 100,
 };
 
-setBackArrowArt(BACK_ARROW);
+setBackArrowArt(BACK_SYMBOL);
 setBrushArt('infinity', INFINITY_SYMBOL);
 setBrushArt('levels', LEVELS_SYMBOL);
 
@@ -361,7 +361,7 @@ describe('drawScene', () => {
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'done')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'locked')).toBe(true);
     expect(levels.calls.some((call) => call[0] === 'fillText' && call[1] === 'back')).toBe(false);
-    expect(levels.calls.some((call) => call[0] === 'drawImage' && call[1] === BACK_ARROW)).toBe(true);
+    expect(levels.calls.some((call) => call[0] === 'drawImage' && call[1] === BACK_SYMBOL)).toBe(true);
     expect(menu.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(false);
     expect(menu.calls.some((call) => call[0] === 'ellipse')).toBe(false);
 

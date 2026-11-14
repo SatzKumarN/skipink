@@ -1,7 +1,7 @@
 import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
-import backArrowUrl from '../assets/back-arrow.png';
+import backSymbolUrl from '../assets/back-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
 import levelsSymbolUrl from '../assets/levels-symbol.png';
 
@@ -11,7 +11,7 @@ const PEN = '"Kalam", Georgia, serif';
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 
 const BRUSH_ART = {
-  back: { url: backArrowUrl, image: null, tints: new Map() },
+  back: { url: backSymbolUrl, image: null, tints: new Map() },
   infinity: { url: infinitySymbolUrl, image: null, tints: new Map() },
   levels: { url: levelsSymbolUrl, image: null, tints: new Map() },
 };
