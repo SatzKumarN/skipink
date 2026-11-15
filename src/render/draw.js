@@ -1,4 +1,4 @@
-import { COLOR, FIGURE, PAGE, ROPE } from '../config.js';
+import { COLOR, FIGURE, MARKER, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
 import backSymbolUrl from '../assets/back-symbol.png';
@@ -146,11 +146,11 @@ function poly(ctx, points) {
   ctx.closePath();
 }
 
-function ink(ctx, width, draw) {
+function ink(ctx, width, draw, color = COLOR.ink) {
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  ctx.strokeStyle = COLOR.ink;
+  ctx.strokeStyle = color;
   ctx.lineWidth = width;
   ctx.beginPath();
   draw(ctx);
@@ -228,11 +228,13 @@ function bodyTriangle(spec) {
   };
 }
 
-function gripsLocal(spec) {
+function gripsLocal(spec, character = 'bun') {
   const body = bodyTriangle(spec);
+  const reach = COSTUME_IDS.has(character) ? 30 : 22;
+  const drop = COSTUME_IDS.has(character) ? 4 : 8;
   return [
-    { x: body.left.x - 22, y: body.left.y + 8 },
-    { x: body.right.x + 22, y: body.right.y + 8 },
+    { x: body.left.x - reach, y: body.left.y + drop },
+    { x: body.right.x + reach, y: body.right.y + drop },
   ];
 }
 
@@ -248,7 +250,7 @@ function toWorld(vm, local) {
 }
 
 function gripsWorld(vm) {
-  return gripsLocal(poseOf(vm)).map((grip) => toWorld(vm, grip));
+  return gripsLocal(poseOf(vm), figureKind(vm)).map((grip) => toWorld(vm, grip));
 }
 
 function traceTriangle(ctx, body) {
@@ -519,8 +521,338 @@ function drawBalletShoes(ctx, vm) {
   ctx.restore();
 }
 
+const COSTUME_IDS = new Set(['scarecrow', 'pumpkin', 'samurai']);
+
+function mirrorAround(right, axisX) {
+  const left = [];
+  for (let i = right.length - 1; i >= 0; i -= 1) {
+    const [x, y] = right[i];
+    if (Math.abs(x - axisX) < 0.01) continue;
+    left.push([axisX - (x - axisX), y]);
+  }
+  return right.concat(left);
+}
+
+function paintShape(ctx, points, fill, tone) {
+  poly(ctx, points);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.strokeStyle = tone || COLOR.ink;
+  ctx.lineWidth = 2.4;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+}
+
+function clothFill(colors, tone) {
+  return {
+    skirt: tone || colors.skirt,
+    deep: tone || colors.deep,
+    line: tone || COLOR.ink,
+  };
+}
+
+function clothBox(spec) {
+  const [sx, sy] = spec.skirt;
+  return { sx, sy, half: 26, drop: 52 };
+}
+
+function drawCostumeLegs(ctx, spec, tone) {
+  const { sx, sy, drop } = clothBox(spec);
+  const hem = sy + drop * 0.72;
+  ink(ctx, 3.4, (pen) => {
+    pen.moveTo(sx - 5, hem);
+    pen.quadraticCurveTo(spec.left[0], spec.left[1], spec.left[2], spec.left[3]);
+    pen.moveTo(sx + 5, hem);
+    pen.quadraticCurveTo(spec.right[0], spec.right[1], spec.right[2], spec.right[3]);
+  }, tone);
+}
+
+function drawCostumeArms(ctx, spec, grips, tone) {
+  const [hx, hy] = spec.head;
+  ink(ctx, 3.2, (pen) => {
+    pen.moveTo(hx - 8, hy + 16);
+    pen.lineTo(grips[0].x, grips[0].y);
+    pen.moveTo(hx + 8, hy + 16);
+    pen.lineTo(grips[1].x, grips[1].y);
+  }, tone);
+}
+
+function drawRoundHands(ctx, grips, tone) {
+  ctx.fillStyle = tone || COLOR.ink;
+  grips.forEach((grip) => {
+    ctx.beginPath();
+    ctx.arc(grip.x, grip.y, 5.5, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function drawStrawHands(ctx, grips, tone) {
+  const straw = tone || MARKER.straw;
+  grips.forEach((grip, index) => {
+    const dir = index === 0 ? -1 : 1;
+    [-0.9, -0.15, 0.7].forEach((turn, spike) => {
+      const ang = dir < 0 ? Math.PI - turn : turn;
+      const len = 9 + (spike % 2) * 4;
+      const tipX = grip.x + Math.cos(ang) * len;
+      const tipY = grip.y + Math.sin(ang) * len;
+      paintShape(ctx, [
+        [grip.x + Math.cos(ang - 0.35) * 2, grip.y + Math.sin(ang - 0.35) * 2],
+        [tipX, tipY],
+        [grip.x + Math.cos(ang + 0.35) * 2, grip.y + Math.sin(ang + 0.35) * 2],
+      ], straw, tone);
+    });
+  });
+  drawRoundHands(ctx, grips, tone);
+}
+
+function jaggedDress(spec, reach) {
+  const { sx, sy, half, drop } = clothBox(spec);
+  const side = half * reach;
+  return mirrorAround([
+    [sx + side * 0.58, sy - 4],
+    [sx + side, sy + drop * 0.52],
+    [sx + side * 0.74, sy + drop * 0.46],
+    [sx + side * 1.08, sy + drop * 0.9],
+    [sx + side * 0.48, sy + drop * 0.74],
+    [sx + side * 0.64, sy + drop],
+    [sx, sy + drop * 0.86],
+  ], sx);
+}
+
+function drawCloth(ctx, spec, colors, tone, reach) {
+  const cloth = clothFill(colors, tone);
+  const dress = jaggedDress(spec, reach);
+  paintShape(ctx, dress, cloth.skirt, tone);
+  const { sx, sy, half, drop } = clothBox(spec);
+  ctx.save();
+  poly(ctx, dress);
+  ctx.clip();
+  paintShape(ctx, [
+    [sx - half * 0.42, sy + 2],
+    [sx + half * 0.42, sy + 2],
+    [sx + half * 0.34, sy + drop * 0.7],
+    [sx - half * 0.34, sy + drop * 0.7],
+  ], cloth.deep, tone);
+  ctx.restore();
+  return cloth;
+}
+
+function drawScarecrow(ctx, spec, colors, tone) {
+  const [hx, hy] = spec.head;
+  const straw = tone || MARKER.straw;
+  const band = tone || MARKER.band;
+  const grips = gripsLocal(spec, 'scarecrow');
+  drawCostumeLegs(ctx, spec, tone || COLOR.ink);
+  const cloth = drawCloth(ctx, spec, colors, tone, 0.78);
+  drawCostumeArms(ctx, spec, grips, tone || COLOR.ink);
+  drawStrawHands(ctx, grips, tone);
+  const { sx, sy, half, drop } = clothBox(spec);
+  ctx.save();
+  poly(ctx, jaggedDress(spec, 0.78));
+  ctx.clip();
+  paintShape(ctx, [
+    [sx - half, sy + drop * 0.4],
+    [sx + half, sy + drop * 0.4],
+    [sx + half, sy + drop * 0.52],
+    [sx - half, sy + drop * 0.52],
+  ], cloth.deep, tone);
+  ctx.restore();
+  paintShape(ctx, mirrorAround([
+    [hx, hy + 18],
+    [hx + 8, hy + 28],
+    [hx + 16, hy + 16],
+    [hx + 24, hy + 30],
+    [hx + 20, hy + 38],
+    [hx, hy + 32],
+  ], hx), straw, tone);
+  ctx.fillStyle = tone || COLOR.ink;
+  ctx.beginPath();
+  ctx.arc(hx, hy, 13, 0, Math.PI * 2);
+  ctx.fill();
+  paintShape(ctx, [
+    [hx - 12, hy - 16],
+    [hx - 8, hy - 42],
+    [hx + 8, hy - 42],
+    [hx + 12, hy - 16],
+  ], straw, tone);
+  paintShape(ctx, [
+    [hx - 14, hy - 24],
+    [hx + 14, hy - 24],
+    [hx + 14, hy - 16],
+    [hx - 14, hy - 16],
+  ], band, tone);
+  ctx.beginPath();
+  ctx.ellipse(hx, hy - 14, 32, 7.5, 0, 0, Math.PI * 2);
+  ctx.fillStyle = straw;
+  ctx.fill();
+  ctx.strokeStyle = tone || COLOR.ink;
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  [-0.2, 0.7, 1.45].forEach((turn, index) => {
+    const ang = Math.PI + turn;
+    const len = 7 + (index % 2) * 3;
+    const rootX = hx - 30;
+    const rootY = hy - 12;
+    paintShape(ctx, [
+      [rootX, rootY],
+      [rootX + Math.cos(ang) * len, rootY + Math.sin(ang) * len],
+      [rootX + Math.cos(ang + 0.4) * 3, rootY + Math.sin(ang + 0.4) * 3],
+    ], straw, tone);
+  });
+}
+
+function drawPumpkin(ctx, spec, colors, tone) {
+  const [hx, hy] = spec.head;
+  const orange = tone || MARKER.pumpkin;
+  const leaf = tone || MARKER.leaf;
+  const stem = tone || MARKER.leafDeep;
+  const grips = gripsLocal(spec, 'pumpkin');
+  drawCostumeLegs(ctx, spec, tone || COLOR.ink);
+  drawCloth(ctx, spec, colors, tone, 0.82);
+  drawCostumeArms(ctx, spec, grips, tone || COLOR.ink);
+  drawRoundHands(ctx, grips, tone);
+  paintShape(ctx, mirrorAround([
+    [hx, hy + 20],
+    [hx + 10, hy + 30],
+    [hx + 18, hy + 16],
+    [hx + 26, hy + 32],
+    [hx + 22, hy + 40],
+    [hx, hy + 34],
+  ], hx), leaf, tone);
+  ctx.beginPath();
+  ctx.arc(hx, hy - 6, 22, 0, Math.PI * 2);
+  ctx.fillStyle = orange;
+  ctx.fill();
+  ctx.strokeStyle = tone || COLOR.ink;
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+  const eye = (sign) => {
+    paintShape(ctx, [
+      [hx + sign * 12, hy - 12],
+      [hx + sign * 4, hy - 12],
+      [hx + sign * 8, hy - 4],
+    ], tone || COLOR.ink, tone);
+  };
+  eye(-1);
+  eye(1);
+  paintShape(ctx, [
+    [hx - 3, hy - 3],
+    [hx + 3, hy - 3],
+    [hx, hy + 2],
+  ], tone || COLOR.ink, tone);
+  paintShape(ctx, [
+    [hx - 12, hy + 4],
+    [hx - 7, hy + 9],
+    [hx - 2, hy + 4],
+    [hx + 2, hy + 9],
+    [hx + 7, hy + 4],
+    [hx + 12, hy + 9],
+    [hx + 10, hy + 12],
+    [hx + 5, hy + 8],
+    [hx, hy + 12],
+    [hx - 5, hy + 8],
+    [hx - 10, hy + 12],
+  ], tone || COLOR.ink, tone);
+  paintShape(ctx, [
+    [hx - 3, hy - 28],
+    [hx - 1, hy - 40],
+    [hx + 5, hy - 38],
+    [hx + 4, hy - 27],
+  ], stem, tone);
+  paintShape(ctx, [
+    [hx - 1, hy - 34],
+    [hx - 12, hy - 42],
+    [hx - 8, hy - 32],
+    [hx + 1, hy - 30],
+  ], leaf, tone);
+}
+
+function drawSamurai(ctx, spec, colors, tone) {
+  const [hx, hy] = spec.head;
+  const helm = tone || MARKER.helm;
+  const stripe = tone || MARKER.helmRed;
+  const gold = tone || MARKER.gold;
+  const grips = gripsLocal(spec, 'samurai');
+  const cloth = clothFill(colors, tone);
+  drawCostumeLegs(ctx, spec, tone || COLOR.ink);
+  const armor = jaggedDress(spec, 0.84);
+  paintShape(ctx, armor, cloth.skirt, tone);
+  ctx.save();
+  poly(ctx, armor);
+  ctx.clip();
+  const { sx, sy, half, drop } = clothBox(spec);
+  ink(ctx, 2.2, (pen) => {
+    [0.22, 0.42, 0.62, 0.82].forEach((t) => {
+      pen.moveTo(sx - half * 1.4, sy + drop * t);
+      pen.lineTo(sx + half * 1.4, sy + drop * t);
+    });
+  }, cloth.line);
+  paintShape(ctx, [
+    [sx - half, sy + drop * 0.36],
+    [sx + half, sy + drop * 0.36],
+    [sx + half, sy + drop * 0.5],
+    [sx - half, sy + drop * 0.5],
+  ], cloth.deep, tone);
+  ctx.restore();
+  drawCostumeArms(ctx, spec, grips, tone || COLOR.ink);
+  drawRoundHands(ctx, grips, tone);
+  [-1, 1].forEach((sign) => {
+    const flap = [
+      [hx + sign * 10, hy - 8],
+      [hx + sign * 34, hy - 4],
+      [hx + sign * 38, hy + 12],
+      [hx + sign * 16, hy + 8],
+    ];
+    paintShape(ctx, flap, helm, tone);
+    ctx.save();
+    poly(ctx, flap);
+    ctx.clip();
+    ctx.fillStyle = stripe;
+    ctx.fillRect(hx - 46, hy - 2, 92, 4);
+    ctx.fillRect(hx - 46, hy + 4, 92, 3);
+    ctx.restore();
+  });
+  ctx.fillStyle = tone || COLOR.ink;
+  ctx.beginPath();
+  ctx.arc(hx, hy + 2, 13, 0, Math.PI * 2);
+  ctx.fill();
+  paintShape(ctx, [
+    [hx - 16, hy - 10],
+    [hx - 10, hy - 28],
+    [hx + 10, hy - 28],
+    [hx + 16, hy - 10],
+  ], helm, tone);
+  paintShape(ctx, [
+    [hx - 18, hy - 16],
+    [hx + 18, hy - 16],
+    [hx + 18, hy - 10],
+    [hx - 18, hy - 10],
+  ], stripe, tone);
+  ctx.beginPath();
+  ctx.moveTo(hx - 14, hy - 36);
+  ctx.quadraticCurveTo(hx - 20, hy - 20, hx, hy - 16);
+  ctx.quadraticCurveTo(hx + 20, hy - 20, hx + 14, hy - 36);
+  ctx.quadraticCurveTo(hx + 8, hy - 24, hx, hy - 26);
+  ctx.quadraticCurveTo(hx - 8, hy - 24, hx - 14, hy - 36);
+  ctx.closePath();
+  ctx.fillStyle = gold;
+  ctx.fill();
+  ctx.strokeStyle = tone || COLOR.ink;
+  ctx.lineWidth = 2.2;
+  ctx.stroke();
+}
+
+function drawCostume(ctx, spec, colors, character, tone) {
+  if (character === 'pumpkin') drawPumpkin(ctx, spec, colors, tone);
+  else if (character === 'samurai') drawSamurai(ctx, spec, colors, tone);
+  else drawScarecrow(ctx, spec, colors, tone);
+}
+
 function figureKind(vm) {
-  return vm?.character === 'ballerina' ? 'ballerina' : 'bun';
+  if (vm?.character === 'ballerina') return 'ballerina';
+  if (COSTUME_IDS.has(vm?.character)) return vm.character;
+  return 'bun';
 }
 
 function drawFigure(ctx, vm) {
@@ -530,8 +862,13 @@ function drawFigure(ctx, vm) {
   ctx.save();
   ctx.translate(FIGURE.x, y);
   ctx.rotate(spec.lean);
-  const [sx] = spec.skirt;
   const colors = dressColors(vm);
+  if (COSTUME_IDS.has(character)) {
+    drawCostume(ctx, spec, colors, character);
+    ctx.restore();
+    return;
+  }
+  const [sx] = spec.skirt;
   drawLegs(ctx, spec, character, colors);
   if (character === 'ballerina') drawTutu(ctx, spec, colors);
   else drawSkirt(ctx, spec, colors);
@@ -549,6 +886,15 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
   const tone = locked
     ? COLOR.pencilLine
     : (selected || hit.done ? COLOR.cinnabar : COLOR.ink);
+  if (COSTUME_IDS.has(character)) {
+    const fit = Math.min(hit.w / 128, hit.h / 188);
+    ctx.save();
+    ctx.translate(cx, cy + hit.h * 0.4);
+    ctx.scale(fit, fit);
+    drawCostume(ctx, POSES.stand, { skirt: tone, deep: tone }, character, tone);
+    ctx.restore();
+    return;
+  }
   const scale = Math.min(hit.w, hit.h) / 130;
   ctx.save();
   ctx.translate(cx, cy + 22 * scale);
@@ -1083,7 +1429,7 @@ function drawChoice(ctx, hit, phone) {
   const cx = hit.x + hit.w / 2;
   const cy = hit.y + hit.h / 2;
   const mode = hit.id === 'infinity' || hit.id === 'levels' || hit.id === 'characters';
-  const character = hit.id === 'bun' || hit.id === 'ballerina';
+  const character = hit.id === 'bun' || hit.id === 'ballerina' || COSTUME_IDS.has(hit.id);
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;

@@ -266,7 +266,7 @@ describe('frame', () => {
     expect(picker.state.phase).toBe('characters');
     expect(picker.state.focus).toBe(0);
     expect(steer(picker.state, 1).focus).toBe(1);
-    expect(steer(picker.state, -1).focus).toBe(2);
+    expect(steer(picker.state, -1).focus).toBe(5);
     const levels = press(steer(createState(), 1)).state;
     expect(steer(levels, 1).focus).toBe(1);
     const ballerina = frame({ ...picker.state, focus: 1 }, 0, { pressed: true });
@@ -276,7 +276,10 @@ describe('frame', () => {
     expect(run.state.phase).toBe('count');
     expect(run.state.character).toBe('ballerina');
     expect(goBack(picker.state).phase).toBe('menu');
-    const back = frame({ ...picker.state, focus: 2 }, 0, { pressed: true });
+    const scarecrow = frame({ ...picker.state, focus: 2 }, 0, { pressed: true });
+    expect(scarecrow.state.phase).toBe('menu');
+    expect(scarecrow.state.character).toBe('scarecrow');
+    const back = frame({ ...picker.state, focus: 5 }, 0, { pressed: true });
     expect(back.state.phase).toBe('menu');
     expect(back.state.character).toBe('bun');
     const empty = press({ ...picker.state, focus: 99 });

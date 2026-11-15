@@ -81,26 +81,35 @@ export function levelHits(phone) {
 export function characterHits(phone) {
   const title = titleAnchor(phone);
   const choices = characterChoices();
-  const w = phone ? 124 : 156;
-  const h = phone ? 112 : 140;
-  const gap = phone ? 16 : 28;
-  const startY = title.y + (phone ? 18 : 28);
-  const totalW = w * choices.length + gap * (choices.length - 1);
-  const startX = title.x - totalW / 2;
-  const hits = choices.map((choice, index) => ({
-    ...choice,
-    index,
-    x: startX + index * (w + gap),
-    y: startY,
-    w,
-    h,
-  }));
+  const cols = phone ? 3 : choices.length;
+  const w = phone ? 84 : 120;
+  const h = phone ? 92 : 124;
+  const gapX = phone ? 8 : 14;
+  const gapY = phone ? 6 : 8;
+  const rows = Math.ceil(choices.length / cols);
+  const startY = title.y + (phone ? 16 : 22);
+  const widthOf = (count) => count * w + (count - 1) * gapX;
+  const hits = choices.map((choice, index) => {
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const count = Math.min(cols, choices.length - row * cols);
+    const startX = title.x - widthOf(count) / 2;
+    return {
+      ...choice,
+      index,
+      x: startX + col * (w + gapX),
+      y: startY + row * (h + gapY),
+      w,
+      h,
+    };
+  });
+  const gridBottom = startY + rows * h + (rows - 1) * gapY;
   hits.push({
     id: 'back',
     label: 'back',
     index: choices.length,
     x: title.x - (phone ? 42 : 48),
-    y: startY + h + (phone ? 8 : 12),
+    y: gridBottom + (phone ? 2 : 6),
     w: phone ? 84 : 96,
     h: phone ? 64 : 74,
   });

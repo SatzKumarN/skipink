@@ -18,6 +18,9 @@ export const LEVELS = Array.from({ length: 10 }, (_, index) => ({
 export const CHARACTERS = [
   { id: 'bun', label: 'bun' },
   { id: 'ballerina', label: 'ballerina' },
+  { id: 'scarecrow', label: 'scarecrow' },
+  { id: 'pumpkin', label: 'pumpkin' },
+  { id: 'samurai', label: 'samurai' },
 ];
 
 export const DEFAULT_CHARACTER = CHARACTERS[0].id;
@@ -44,6 +47,17 @@ export const COLOR = {
   skirt: '#7d72d6',
   skirtDeep: '#5b4fb4',
   skirtShade: '#3e3480',
+};
+
+export const MARKER = {
+  straw: '#e6c15a',
+  band: '#7a4c28',
+  pumpkin: '#ef7b2e',
+  leaf: '#3c8a46',
+  leafDeep: '#2d6a36',
+  helm: '#2c365c',
+  helmRed: '#b4332c',
+  gold: '#e6b423',
 };
 
 export const DRESSES = [

@@ -142,7 +142,7 @@ describe('viewModel', () => {
       phase: 'characters',
       focus: 1,
     });
-    expect(characters.characters).toHaveLength(3);
+    expect(characters.characters).toHaveLength(6);
     expect(characters.characters[1].id).toBe('ballerina');
     expect(characters.characters[1].selected).toBe(true);
     expect(characters.characters[1].done).toBe(true);

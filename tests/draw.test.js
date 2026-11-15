@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLOR, DRESSES } from '../src/config.js';
+import { COLOR, DRESSES, MARKER } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
 import { drawScene, setBackArrowArt, setBrushArt } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
@@ -266,6 +266,50 @@ describe('drawScene', () => {
     }));
     expect(styleWas(ballerina, 'fillStyle', DRESSES[2].skirt)).toBe(true);
     expect(ballerina.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+
+    const identity = {
+      scarecrow: [MARKER.straw, MARKER.band],
+      pumpkin: [MARKER.pumpkin, MARKER.leaf, MARKER.leafDeep],
+      samurai: [MARKER.helm, MARKER.helmRed, MARKER.gold],
+    };
+    ['scarecrow', 'pumpkin', 'samurai'].forEach((character, index) => {
+      const painted = mockContext();
+      drawScene(painted, 800, 600, scene({
+        character,
+        pose: ['stand', 'load', 'tuck', 'land', 'stumble'][index],
+        pencil: false,
+        fleck: 0,
+        blot: 0,
+        showScore: false,
+        hint: '',
+        dress: DRESSES[index + 1],
+      }));
+      expect(styleWas(painted, 'fillStyle', DRESSES[index + 1].skirt)).toBe(true);
+      expect(styleWas(painted, 'fillStyle', DRESSES[index + 1].deep)).toBe(true);
+      identity[character].forEach((color) => {
+        expect(styleWas(painted, 'fillStyle', color)).toBe(true);
+      });
+    });
+    drawScene(mockContext(), 800, 600, scene({
+      character: 'samurai',
+      pose: 'stumble',
+      pencil: false,
+      fleck: 0,
+      blot: 0,
+      showScore: false,
+      hint: '',
+      dress: DRESSES[4],
+    }));
+    drawScene(mockContext(), 800, 600, scene({
+      character: 'pumpkin',
+      pose: 'land',
+      pencil: false,
+      fleck: 0,
+      blot: 0,
+      showScore: false,
+      hint: '',
+      dress: DRESSES[5],
+    }));
   });
 
   it('paints a smudged sheet without the pencil guide', () => {
@@ -418,6 +462,33 @@ describe('drawScene', () => {
     }));
     expect(lockedPick.calls.some((call) => call[0] === 'fillText' && call[1] === 'bun')).toBe(false);
     expect(lockedPick.calls.filter((call) => call[0] === 'ellipse')).toHaveLength(1);
+
+    const costumes = mockContext();
+    drawScene(costumes, 390, 844, scene({
+      phase: 'characters',
+      sheet: 1,
+      showScore: false,
+      hint: '',
+      characters: [
+        {
+          id: 'scarecrow', label: 'scarecrow', index: 2,
+          x: 348, y: 116, w: 96, h: 100, selected: true, locked: false, done: true,
+        },
+        {
+          id: 'pumpkin', label: 'pumpkin', index: 3,
+          x: 400, y: 220, w: 96, h: 100, selected: false, locked: true, done: false,
+        },
+        {
+          id: 'samurai', label: 'samurai', index: 4,
+          x: 504, y: 220, w: 96, h: 100, selected: false, locked: false, done: false,
+        },
+      ],
+    }));
+    expect(styleWas(costumes, 'fillStyle', COLOR.cinnabar)).toBe(true);
+    expect(styleWas(costumes, 'fillStyle', COLOR.pencilLine)).toBe(true);
+    expect(styleWas(costumes, 'fillStyle', COLOR.ink)).toBe(true);
+    expect(styleWas(costumes, 'fillStyle', MARKER.pumpkin)).toBe(false);
+    expect(costumes.calls.some((call) => call[0] === 'ellipse')).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({

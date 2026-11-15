@@ -96,6 +96,9 @@ describe('level progress', () => {
 describe('character choice', () => {
   it('reads and writes a known skipper', () => {
     expect(resolveCharacter('ballerina')).toBe('ballerina');
+    expect(resolveCharacter('scarecrow')).toBe('scarecrow');
+    expect(resolveCharacter('pumpkin')).toBe('pumpkin');
+    expect(resolveCharacter('samurai')).toBe('samurai');
     expect(resolveCharacter('nope')).toBe(DEFAULT_CHARACTER);
     expect(resolveCharacter(null)).toBe(DEFAULT_CHARACTER);
     const store = memory([[CHARACTER_STORAGE_KEY, 'ballerina']]);

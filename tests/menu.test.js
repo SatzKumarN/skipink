@@ -65,11 +65,16 @@ describe('menu layout', () => {
     );
     const desk = characterHits(false);
     const phone = characterHits(true);
-    expect(desk).toHaveLength(3);
-    expect(desk[0].id).toBe('bun');
+    expect(desk).toHaveLength(6);
+    expect(desk.map((hit) => hit.id)).toEqual([
+      'bun', 'ballerina', 'scarecrow', 'pumpkin', 'samurai', 'back',
+    ]);
     expect(desk[1].id).toBe('ballerina');
     expect(desk.at(-1).id).toBe('back');
     expect(phone[0].y).toBeLessThan(desk[0].y);
+    expect(phone[3].y).toBeGreaterThan(phone[0].y + phone[0].h);
+    expect(phone[3].x).toBeGreaterThan(phone[0].x);
+    expect(phone.at(-1).y).toBeGreaterThan(phone[3].y + phone[3].h);
     expect(phone.at(-1).y + phone.at(-1).h).toBeLessThan(560);
   });
 });
