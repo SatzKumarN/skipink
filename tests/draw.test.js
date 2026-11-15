@@ -268,6 +268,37 @@ describe('drawScene', () => {
     expect(ballerina.calls.some((call) => call[0] === 'ellipse')).toBe(true);
   });
 
+  it('bends both ballerina legs and brings the feet together on the jump', () => {
+    const jump = mockContext();
+    drawScene(jump, 800, 600, scene({
+      character: 'ballerina',
+      pose: 'tuck',
+      pencil: false,
+      fleck: 0,
+      blot: 0,
+      lift: 1,
+    }));
+    const pointed = jump.calls.filter((call) => call[0] === 'rotate' && call[1] === Math.PI / 2);
+    expect(pointed).toHaveLength(4);
+    expect(jump.calls).toEqual(expect.arrayContaining([
+      ['lineTo', -26, -26],
+      ['lineTo', -8, -12],
+      ['lineTo', 24, -22],
+      ['lineTo', 8, -8],
+    ]));
+
+    const stand = mockContext();
+    drawScene(stand, 800, 600, scene({
+      character: 'ballerina',
+      pose: 'stand',
+      pencil: false,
+      fleck: 0,
+      blot: 0,
+    }));
+    expect(stand.calls.some((call) => call[0] === 'rotate' && call[1] === Math.PI / 2)).toBe(false);
+    expect(stand.calls.some((call) => call[0] === 'lineTo' && call[1] === -26 && call[2] === -26)).toBe(false);
+  });
+
   it('paints a smudged sheet without the pencil guide', () => {
     const ctx = mockContext();
     drawScene(ctx, 900, 640, scene({
