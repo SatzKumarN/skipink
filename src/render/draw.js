@@ -554,7 +554,15 @@ function clothFill(colors, tone) {
 
 function clothBox(spec) {
   const [sx, sy] = spec.skirt;
-  return { sx, sy, half: 26, drop: 52 };
+  const [, hy] = spec.head;
+  const neck = hy + 6;
+  const hem = sy + 48;
+  return {
+    sx,
+    sy: neck,
+    half: 28,
+    drop: Math.max(36, hem - neck),
+  };
 }
 
 function drawCostumeLegs(ctx, spec, tone) {
@@ -571,9 +579,9 @@ function drawCostumeLegs(ctx, spec, tone) {
 function drawCostumeArms(ctx, spec, grips, tone) {
   const [hx, hy] = spec.head;
   ink(ctx, 3.2, (pen) => {
-    pen.moveTo(hx - 8, hy + 16);
+    pen.moveTo(hx - 10, hy + 22);
     pen.lineTo(grips[0].x, grips[0].y);
-    pen.moveTo(hx + 8, hy + 16);
+    pen.moveTo(hx + 10, hy + 22);
     pen.lineTo(grips[1].x, grips[1].y);
   }, tone);
 }
@@ -610,8 +618,8 @@ function jaggedDress(spec, reach) {
   const { sx, sy, half, drop } = clothBox(spec);
   const side = half * reach;
   return mirrorAround([
-    [sx + side * 0.58, sy - 4],
-    [sx + side, sy + drop * 0.52],
+    [sx + side * 0.7, sy],
+    [sx + side, sy + drop * 0.42],
     [sx + side * 0.74, sy + drop * 0.46],
     [sx + side * 1.08, sy + drop * 0.9],
     [sx + side * 0.48, sy + drop * 0.74],
@@ -659,12 +667,12 @@ function drawScarecrow(ctx, spec, colors, tone) {
   ], cloth.deep, tone);
   ctx.restore();
   paintShape(ctx, mirrorAround([
-    [hx, hy + 18],
-    [hx + 8, hy + 28],
-    [hx + 16, hy + 16],
-    [hx + 24, hy + 30],
-    [hx + 20, hy + 38],
-    [hx, hy + 32],
+    [hx, hy + 8],
+    [hx + 8, hy + 20],
+    [hx + 16, hy + 12],
+    [hx + 24, hy + 28],
+    [hx + 20, hy + 40],
+    [hx, hy + 34],
   ], hx), straw, tone);
   ctx.fillStyle = tone || COLOR.ink;
   ctx.beginPath();
@@ -713,12 +721,12 @@ function drawPumpkin(ctx, spec, colors, tone) {
   drawCostumeArms(ctx, spec, grips, tone || COLOR.ink);
   drawRoundHands(ctx, grips, tone);
   paintShape(ctx, mirrorAround([
-    [hx, hy + 20],
-    [hx + 10, hy + 30],
-    [hx + 18, hy + 16],
-    [hx + 26, hy + 32],
-    [hx + 22, hy + 40],
-    [hx, hy + 34],
+    [hx, hy + 10],
+    [hx + 10, hy + 24],
+    [hx + 18, hy + 12],
+    [hx + 26, hy + 30],
+    [hx + 22, hy + 42],
+    [hx, hy + 36],
   ], hx), leaf, tone);
   ctx.beginPath();
   ctx.arc(hx, hy - 6, 22, 0, Math.PI * 2);
@@ -797,6 +805,12 @@ function drawSamurai(ctx, spec, colors, tone) {
   ctx.restore();
   drawCostumeArms(ctx, spec, grips, tone || COLOR.ink);
   drawRoundHands(ctx, grips, tone);
+  paintShape(ctx, [
+    [hx - 6, hy + 4],
+    [hx + 6, hy + 4],
+    [hx + 7, hy + 28],
+    [hx - 7, hy + 28],
+  ], tone || COLOR.ink, tone);
   [-1, 1].forEach((sign) => {
     const flap = [
       [hx + sign * 10, hy - 8],
