@@ -488,7 +488,7 @@ describe('drawScene', () => {
     expect(styleWas(costumes, 'fillStyle', COLOR.pencilLine)).toBe(true);
     expect(styleWas(costumes, 'fillStyle', COLOR.ink)).toBe(true);
     expect(styleWas(costumes, 'fillStyle', MARKER.pumpkin)).toBe(false);
-    expect(costumes.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+    expect(costumes.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({
