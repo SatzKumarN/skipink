@@ -861,25 +861,26 @@ function drawSamurai(ctx, spec, colors, tone) {
     ctx.stroke();
   });
   ctx.restore();
+  const waist = neck + (hem - neck) * 0.5;
   traceMirrored(ctx, hx, [
-    [hx + 8, hem - 22],
-    [hx + 22, hem - 18],
-    [hx + 20, hem - 10],
-    [hx + 6, hem - 12],
+    [hx + 6, waist - 5],
+    [hx + 20, waist - 3],
+    [hx + 18, waist + 5],
+    [hx + 5, waist + 3],
   ]);
   fillOutlined(ctx, deep, tone);
   ctx.beginPath();
-  ctx.arc(hx, hem - 16, 4.2, 0, Math.PI * 2);
+  ctx.arc(hx, waist, 4.2, 0, Math.PI * 2);
   ctx.fillStyle = deep;
   ctx.fill();
   ctx.strokeStyle = line;
   ctx.lineWidth = 2;
   ctx.stroke();
   ink(ctx, 2.6, (pen) => {
-    pen.moveTo(hx - 3, hem - 14);
-    pen.lineTo(hx - 8, hem - 2);
-    pen.moveTo(hx + 3, hem - 14);
-    pen.lineTo(hx + 8, hem - 2);
+    pen.moveTo(hx - 3, waist + 2);
+    pen.lineTo(hx - 8, waist + 14);
+    pen.moveTo(hx + 3, waist + 2);
+    pen.lineTo(hx + 8, waist + 14);
   }, line);
   drawCurvedArms(ctx, frame, grips, tone);
   drawPalms(ctx, grips, tone);
