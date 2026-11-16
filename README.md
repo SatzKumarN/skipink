@@ -11,7 +11,16 @@ npm install
 npm run dev
 ```
 
-On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. The character sheet shows figure previews only: head-with-bun, ballerina, scarecrow, pumpkin, or samurai. Dress color still changes each fresh run. The scarecrow keeps the straw hat, the pumpkin keeps the orange head, and the samurai keeps the helmet; the cloth takes the run color. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Your best infinity count, cleared levels, and character stay in the browser.
+On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. The character sheet shows figure previews only: head-with-bun, ballerina, scarecrow, pumpkin, or samurai. Dress color still changes each fresh run. The scarecrow keeps the straw hat, the pumpkin keeps the orange head, and the samurai keeps the helmet; the cloth takes the run color. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Press V or tap the top-right star symbol to toggle between Classic view (`✧`) and Enhanced view (`✦`). Your best infinity count, cleared levels, character, and view mode stay in the browser.
+
+## Enhanced View
+
+Toggling Enhanced view (`✦`) activates the Living Notebook and Desk World:
+- **Game Juice:** Screen shake on miss, score pop scaling, landing dust puffs, and dynamic rope speed trails.
+- **Living Notebook:** Breathing idle animations for the skippers, ink bloom on rope contact, and organic paper fiber motion.
+- **Desk World:** Ambient wood-grain desk surface with procedural drafting pencils, eraser shavings, a coffee ring, paint palette, and metal paperclip, plus warm desk lamp lighting.
+- **Delight & Audio:** Streak fanfare (`streak` and `crown` audio cues), pitch modulation, character-specific particle bursts (notes, straw, leaves, sword arcs, ink droplets), and golden crown celebrations for high scores.
+- **Accessibility:** Live ARIA region announcing game states and scores.
 
 ## Fonts
 
