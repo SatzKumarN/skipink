@@ -451,23 +451,69 @@ function drawPointe(ctx, x, y, dir, planted, color) {
   });
 }
 
-function balletAnkles(spec) {
+function balletPose(spec) {
+  const [sx, sy] = spec.skirt;
+  const hip = sy + 4;
   const leftY = spec.left[3];
   const rightY = spec.right[3];
   const planted = Math.min(leftY, rightY) >= 10;
-  if (!planted) {
-    const y = Math.min(leftY, rightY) + 5;
+  if (planted) {
     return {
       planted,
-      left: { x: -8, y },
-      right: { x: 8, y: y + 2 },
+      left: { hipX: sx - 1, hipY: hip, ankleX: spec.left[2] - 4, ankleY: leftY - 8 },
+      right: { hipX: sx + 1, hipY: hip, ankleX: spec.right[2] + 4, ankleY: rightY - 8 },
     };
   }
+  // Jump: both knees turn out, pointed feet hang close under the tutu.
   return {
     planted,
-    left: { x: spec.left[2] - 4, y: leftY - 8 },
-    right: { x: spec.right[2] + 4, y: rightY - 8 },
+    left: {
+      hipX: sx - 1,
+      hipY: hip,
+      kneeX: sx - 24,
+      kneeY: hip + 28,
+      ankleX: sx - 6,
+      ankleY: hip + 42,
+    },
+    right: {
+      hipX: sx + 1,
+      hipY: hip,
+      kneeX: sx + 26,
+      kneeY: hip + 32,
+      ankleX: sx + 10,
+      ankleY: hip + 46,
+    },
   };
+}
+
+function drawHangingPointe(ctx, x, y, color) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(Math.PI / 2);
+  drawPointe(ctx, 0, 0, 1, false, color);
+  ctx.restore();
+}
+
+function drawBalletFeet(ctx, pose, color) {
+  if (pose.planted) {
+    drawPointe(ctx, pose.left.ankleX, pose.left.ankleY, -1, true, color);
+    drawPointe(ctx, pose.right.ankleX, pose.right.ankleY, 1, true, color);
+    return;
+  }
+  drawHangingPointe(ctx, pose.left.ankleX, pose.left.ankleY, color);
+  drawHangingPointe(ctx, pose.right.ankleX, pose.right.ankleY, color);
+}
+
+function drawBalletLimbs(ctx, spec, colors) {
+  const pose = balletPose(spec);
+  ink(ctx, 2.3, (pen) => {
+    [pose.left, pose.right].forEach((leg) => {
+      pen.moveTo(leg.hipX, leg.hipY);
+      if (!pose.planted) pen.lineTo(leg.kneeX, leg.kneeY);
+      pen.lineTo(leg.ankleX, leg.ankleY);
+    });
+  });
+  drawBalletFeet(ctx, pose, colors.skirt);
 }
 
 function drawBallerinaHead(ctx, spec) {
@@ -492,16 +538,7 @@ function drawLegs(ctx, spec, character, colors) {
   const [sx, sy, , sry] = spec.skirt;
   const hem = sy + sry * 0.9;
   if (character === 'ballerina') {
-    const hip = sy + 4;
-    const ankles = balletAnkles(spec);
-    ink(ctx, 2.3, (pen) => {
-      pen.moveTo(sx - 1, hip);
-      pen.lineTo(ankles.left.x, ankles.left.y);
-      pen.moveTo(sx + 1, hip);
-      pen.lineTo(ankles.right.x, ankles.right.y);
-    });
-    drawPointe(ctx, ankles.left.x, ankles.left.y, -1, ankles.planted, colors.skirt);
-    drawPointe(ctx, ankles.right.x, ankles.right.y, 1, ankles.planted, colors.skirt);
+    drawBalletLimbs(ctx, spec, colors);
     return;
   }
   ink(ctx, 3.6, (pen) => {
@@ -515,14 +552,12 @@ function drawLegs(ctx, spec, character, colors) {
 function drawBalletShoes(ctx, vm) {
   if (figureKind(vm) !== 'ballerina') return;
   const spec = poseOf(vm);
-  const ankles = balletAnkles(spec);
+  const pose = balletPose(spec);
   const y = FIGURE.ground - vm.lift * 46;
   ctx.save();
   ctx.translate(FIGURE.x, y);
   ctx.rotate(spec.lean);
-  const colors = dressColors(vm);
-  drawPointe(ctx, ankles.left.x, ankles.left.y, -1, ankles.planted, colors.skirt);
-  drawPointe(ctx, ankles.right.x, ankles.right.y, 1, ankles.planted, colors.skirt);
+  drawBalletFeet(ctx, pose, dressColors(vm).skirt);
   ctx.restore();
 }
 
