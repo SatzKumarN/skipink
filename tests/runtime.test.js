@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CHARACTER_STORAGE_KEY, LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
+import {
+  CHARACTER_STORAGE_KEY,
+  LEVEL_STORAGE_KEY,
+  STORAGE_KEY,
+  VIEW_STORAGE_KEY,
+} from '../src/config.js';
 import { createState, frame } from '../src/core/game.js';
 import { prefersReducedMotion, startGame } from '../src/runtime.js';
 import { mockContext } from './helpers/mockContext.js';
@@ -298,5 +303,34 @@ describe('startGame', () => {
     box.queued.shift()(1048);
     expect(box.mem.get(CHARACTER_STORAGE_KEY)).toBe('bun');
     game.stop();
+  });
+
+  it('toggles view mode between classic and enhanced', () => {
+    const toggle = document.createElement('button');
+    document.body.append(toggle);
+    const box = harness({ toggle });
+    box.mem.set(VIEW_STORAGE_KEY, 'enhanced');
+    const game = startGame(box.env);
+    expect(toggle.textContent).toBe('✦');
+    expect(toggle.classList.contains('enhanced')).toBe(true);
+
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(toggle.textContent).toBe('✧');
+    expect(toggle.classList.contains('enhanced')).toBe(false);
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('classic');
+
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(toggle.textContent).toBe('✦');
+    expect(toggle.classList.contains('enhanced')).toBe(true);
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
+
+    box.queued.shift()(1000);
+    expect(box.paint).toHaveBeenCalled();
+    const lastVm = box.paint.mock.calls.at(-1)[3];
+    expect(lastVm.enhanced).toBe(true);
+
+    game.stop();
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
   });
 });

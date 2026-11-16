@@ -5,10 +5,12 @@ export function boot(globals = globalThis) {
   if (!doc) throw new Error('Skipink is missing its page.');
   const canvas = doc.querySelector('#page');
   const button = doc.querySelector('#jump');
+  const toggle = doc.querySelector('#view-toggle');
   if (!canvas || !button) throw new Error('Skipink is missing its page.');
   return startGame({
     canvas,
     button,
+    toggle,
     window: globals,
     storage: globals.localStorage,
     now: () => globals.performance.now(),

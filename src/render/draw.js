@@ -9,6 +9,16 @@ import levelsSymbolUrl from '../assets/levels-symbol.png';
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
 
+function shakeOffset(vm) {
+  if (!vm.enhanced) return { x: 0, y: 0 };
+  if (vm.phase !== 'over' || vm.blot <= 0 || vm.blot >= 0.3) return { x: 0, y: 0 };
+  const intensity = (1 - vm.blot / 0.3) * 6;
+  const seed = vm.splash * 99991;
+  const sx = Math.sin(seed + vm.blot * 71) * intensity;
+  const sy = Math.cos(seed + vm.blot * 113) * intensity;
+  return { x: sx, y: sy };
+}
+
 const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 
 const BRUSH_ART = {
@@ -1196,6 +1206,13 @@ function drawPencil(ctx, vm) {
 }
 
 function drawScore(ctx, vm) {
+  ctx.save();
+  if (vm.enhanced && vm.fleck > 0) {
+    const pop = 1 + vm.fleck * 0.15;
+    ctx.translate(820, 128);
+    ctx.scale(pop, pop);
+    ctx.translate(-820, -128);
+  }
   ctx.textAlign = 'right';
   ctx.font = `72px ${BRUSH}`;
   ctx.fillStyle = COLOR.cinnabar;
@@ -1221,6 +1238,7 @@ function drawScore(ctx, vm) {
       ctx.fillText('new', 748, 156);
     }
   }
+  ctx.restore();
 }
 
 function drawFleck(ctx, vm) {
@@ -1601,7 +1619,8 @@ export function drawScene(ctx, width, height, vm, insets) {
   ctx.clearRect(0, 0, width, height);
   ctx.fillStyle = COLOR.desk;
   ctx.fillRect(0, 0, width, height);
-  ctx.translate(cam.ox, cam.oy);
+  const shake = shakeOffset(vm);
+  ctx.translate(cam.ox + shake.x, cam.oy + shake.y);
   ctx.scale(cam.s, cam.s);
   ctx.translate(PAGE.w / 2, PAGE.h / 2);
   ctx.scale(zoom, zoom);

@@ -2,19 +2,24 @@ import { describe, expect, it } from 'vitest';
 import {
   CHARACTER_STORAGE_KEY,
   DEFAULT_CHARACTER,
+  DEFAULT_VIEW,
   LEGACY_STORAGE_KEY,
   LEVEL_STORAGE_KEY,
   STORAGE_KEY,
+  VIEW_STORAGE_KEY,
 } from '../src/config.js';
 import {
   readBest,
   readCharacter,
   readCleared,
+  readView,
   resolveCharacter,
+  resolveView,
   unlockedLevel,
   writeBest,
   writeCharacter,
   writeCleared,
+  writeView,
 } from '../src/storage.js';
 
 function memory(initial) {
@@ -109,5 +114,23 @@ describe('character choice', () => {
     expect(readCharacter({ getItem: () => { throw new Error('blocked'); } })).toBe(DEFAULT_CHARACTER);
     expect(writeCharacter({ setItem: () => { throw new Error('blocked'); } }, 'ballerina'))
       .toBe(DEFAULT_CHARACTER);
+  });
+});
+
+describe('view preference', () => {
+  it('reads and writes view mode, defaulting to classic', () => {
+    expect(resolveView('enhanced')).toBe('enhanced');
+    expect(resolveView('classic')).toBe('classic');
+    expect(resolveView('other')).toBe(DEFAULT_VIEW);
+    expect(resolveView(null)).toBe(DEFAULT_VIEW);
+
+    const store = memory([[VIEW_STORAGE_KEY, 'enhanced']]);
+    expect(readView(store)).toBe('enhanced');
+    expect(writeView(store, 'classic')).toBe('classic');
+    expect(store.values.get(VIEW_STORAGE_KEY)).toBe('classic');
+    expect(writeView(store, 'invalid')).toBe(DEFAULT_VIEW);
+    expect(readView({ getItem: () => { throw new Error('blocked'); } })).toBe(DEFAULT_VIEW);
+    expect(writeView({ setItem: () => { throw new Error('blocked'); } }, 'enhanced'))
+      .toBe(DEFAULT_VIEW);
   });
 });

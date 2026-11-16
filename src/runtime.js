@@ -10,9 +10,11 @@ import {
   readBest,
   readCharacter,
   readCleared,
+  readView,
   writeBest,
   writeCharacter,
   writeCleared,
+  writeView,
 } from './storage.js';
 
 const SOUNDS = { jump: 'jump', start: 'jump', skip: 'land', miss: 'blot', clear: 'land' };
@@ -40,11 +42,31 @@ export function startGame(env) {
   let bestWritten = readBest(storage);
   let clearedWritten = readCleared(storage);
   let characterWritten = readCharacter(storage);
+  let viewMode = readView(storage);
   let state = createState(bestWritten, clearedWritten, characterWritten);
   const canvas = env.canvas;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('This browser cannot draw the sketchbook page.');
   const button = env.button;
+  const toggle = env.toggle || null;
+
+  function syncToggle() {
+    if (!toggle) return;
+    toggle.textContent = viewMode === 'enhanced' ? '✦' : '✧';
+    toggle.title = viewMode === 'enhanced' ? 'Switch to classic view' : 'Switch to enhanced view';
+    toggle.setAttribute('aria-label', toggle.title);
+    toggle.classList.toggle('enhanced', viewMode === 'enhanced');
+  }
+  syncToggle();
+
+  function onToggle(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    viewMode = viewMode === 'enhanced' ? 'classic' : 'enhanced';
+    writeView(storage, viewMode);
+    syncToggle();
+  }
+  if (toggle) toggle.addEventListener('pointerdown', onToggle);
   let pressed = false;
   let pointer = null;
   let steer = 0;
@@ -140,6 +162,7 @@ export function startGame(env) {
       clock: now / 1000,
       reducedMotion: reduced,
       phone: phoneLayout(box.w, box.h),
+      enhanced: viewMode === 'enhanced',
     });
     paint(context, box.w, box.h, vm, lastInsets);
     button.textContent = vm.label;
@@ -153,6 +176,7 @@ export function startGame(env) {
     stop() {
       live = false;
       unbind();
+      if (toggle) toggle.removeEventListener('pointerdown', onToggle);
     },
   };
 }

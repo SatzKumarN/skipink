@@ -49,3 +49,60 @@ canvas {
 .jump:disabled {
   cursor: default;
 }
+
+.view-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 10;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #b7a790;
+  border-radius: 50%;
+  background: #f4ead7;
+  color: #8d7d68;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  user-select: none;
+  transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  box-shadow: 0 2px 6px rgba(27, 23, 20, 0.12);
+}
+
+.view-toggle:hover {
+  border-color: #8d7d68;
+  color: #1b1714;
+}
+
+.view-toggle.enhanced {
+  border-color: #c4452d;
+  color: #c4452d;
+  background: #f4ead7;
+}
+
+.view-toggle.enhanced:hover {
+  background: #e5d7c2;
+}
+
+.view-toggle:focus-visible {
+  outline: 3px solid #c4452d;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) and (orientation: portrait) {
+  .view-toggle {
+    top: max(8px, env(safe-area-inset-top, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+}

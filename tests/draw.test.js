@@ -635,4 +635,19 @@ describe('drawScene', () => {
     const early = paint(0.37, 0.12).calls.find((call) => call[0] === 'ellipse');
     expect(early[1]).not.toBe(marks[0][1]);
   });
+
+  it('applies enhanced visuals like score pop and miss shake when enabled', () => {
+    const popCtx = mockContext();
+    drawScene(popCtx, 900, 640, scene({ enhanced: true, fleck: 0.8 }));
+    expect(popCtx.calls.some((call) => call[0] === 'scale' && call[1] > 1)).toBe(true);
+
+    const shakeCtx = mockContext();
+    drawScene(shakeCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      blot: 0.15,
+      splash: 0.42,
+    }));
+    expect(shakeCtx.calls.some((call) => call[0] === 'translate')).toBe(true);
+  });
 });

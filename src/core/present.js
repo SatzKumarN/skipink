@@ -153,6 +153,7 @@ function charactersView(state, phone) {
 export function viewModel(state, options = {}) {
   const clock = Number.isFinite(options.clock) ? options.clock : state.time;
   const phone = Boolean(options.phone);
+  const enhanced = Boolean(options.enhanced);
   const blot = blotAmount(state, Boolean(options.reducedMotion));
   const count = countDigit(state);
   const progress = state.phase === 'playing' || state.phase === 'over' || state.phase === 'count'
@@ -180,6 +181,7 @@ export function viewModel(state, options = {}) {
   return {
     phase: state.phase,
     mode: state.mode,
+    enhanced,
     level: state.level,
     goal: state.goal,
     unlocked: state.unlocked,
