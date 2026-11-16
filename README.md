@@ -19,6 +19,12 @@ Toggling Enhanced view (`✦`) activates the Living Notebook and Desk World:
 - **Game Juice:** Screen shake on miss, score pop scaling, landing dust puffs, and dynamic rope speed trails.
 - **Living Notebook:** Breathing idle animations for the skippers, ink bloom on rope contact, and organic paper fiber motion.
 - **Desk World:** Ambient wood-grain desk surface with procedural drafting pencils, eraser shavings, a coffee ring, paint palette, and metal paperclip, plus warm desk lamp lighting.
+- **Manga Pop-Art Layer:** Dynamic comic sound effect bursts (`HOP!`, `SWOOSH!`, `NICE!`, `PERFECT!`, `FEVER!!` with Japanese subtext), radial speed focus lines, impact shockwaves, expressive emotes (sweatdrops, popping veins `💢`, sparkle stars `✨`), and high-streak anime flame auras.
+- **Character Overhaul:** Expressive anime facial features, fluttering hair ribbon physics, tiaras, warrior eyes, and candlelit pumpkin faces.
+- **Customization Controls:**
+  - 🎨 **Color Picker (<kbd>C</kbd>):** Click the top palette button, press <kbd>C</kbd>, or tap the watercolor paint swatches on the desk to cycle between 6 vibrant outfit colors.
+  - 🎲 **Randomizer (<kbd>R</kbd>):** Click the dice button or press <kbd>R</kbd> to randomly select a character and outfit color.
+  - 🖼️ **Custom Character Upload (<kbd>U</kbd>):** Click the picture frame button or press <kbd>U</kbd> to upload any PNG/JPEG/SVG doodle or avatar to skip rope with dynamic squash & stretch, landing dust, and manga SFX!
 - **Delight & Audio:** Streak fanfare (`streak` and `crown` audio cues), pitch modulation, character-specific particle bursts (notes, straw, leaves, sword arcs, ink droplets), and golden crown celebrations for high scores.
 - **Accessibility:** Live ARIA region announcing game states and scores.
 
