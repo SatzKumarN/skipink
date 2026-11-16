@@ -666,9 +666,16 @@ describe('drawScene', () => {
       enhanced: true,
       phase: 'menu',
       clock: 1.2,
+      score: 30,
       character: 'ballerina',
       menu: [{ id: 'infinity', selected: true, x: 100, y: 100, w: 100, h: 100 }],
     }));
     expect(breatheCtx.calls.some((call) => call[0] === 'rotate')).toBe(true);
+    expect(breatheCtx.calls.some((call) => call[0] === 'strokeRect')).toBe(true);
+    expect(breatheCtx.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
+
+    const highCtx = mockContext();
+    drawScene(highCtx, 900, 640, scene({ enhanced: true, score: 60 }));
+    expect(highCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === '#dbba92')).toBe(true);
   });
 });

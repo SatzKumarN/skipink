@@ -1,6 +1,15 @@
 import { COLOR, FIGURE, MARKER, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
 import { camera } from './fit.js';
+import {
+  drawCoffeeRing,
+  drawColorPalette,
+  drawDeskLighting,
+  drawDraftingPencil,
+  drawEraserShavings,
+  drawPaperClip,
+  drawWoodGrain,
+} from './desk.js';
 import backSymbolUrl from '../assets/back-symbol.png';
 import charactersSymbolUrl from '../assets/characters-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
@@ -1202,7 +1211,7 @@ function drawRope(ctx, vm, dashed, behind) {
   }
 }
 
-function drawPage(ctx) {
+function drawPage(ctx, vm) {
   ctx.fillStyle = COLOR.sheet;
   poly(ctx, SHEET);
   ctx.fill();
@@ -1212,10 +1221,11 @@ function drawPage(ctx) {
   ctx.save();
   ctx.strokeStyle = COLOR.fiber;
   ctx.lineWidth = 1.4;
-  FIBERS.forEach((y) => {
+  FIBERS.forEach((y, idx) => {
     ctx.beginPath();
-    ctx.moveTo(120, y);
-    ctx.lineTo(790, y);
+    const wave = vm?.enhanced ? Math.sin((vm.clock || 0) * 1.5 + idx) * 1.2 : 0;
+    ctx.moveTo(120, y + wave);
+    ctx.lineTo(790, y + wave);
     ctx.stroke();
   });
   ctx.restore();
@@ -1225,9 +1235,10 @@ function drawPage(ctx) {
     ctx.arc(118, y, 5, 0, Math.PI * 2);
     ctx.fill();
   });
-  SPECKS.forEach(([x, y, r]) => {
+  SPECKS.forEach(([x, y, r], idx) => {
+    const pulse = vm?.enhanced ? Math.sin((vm.clock || 0) * 2 + idx) * 0.35 : 0;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, Math.max(0.5, r + pulse), 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -1641,7 +1652,7 @@ function paintBrushSymbol(ctx, hit, selected, locked, id, scale = 0.94) {
   );
 }
 
-function drawChoice(ctx, hit, phone) {
+function drawChoice(ctx, hit, phone, vm) {
   const selected = Boolean(hit.selected);
   const locked = Boolean(hit.locked);
   const cx = hit.x + hit.w / 2;
@@ -1651,6 +1662,14 @@ function drawChoice(ctx, hit, phone) {
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;
+  if (vm?.enhanced && selected && !back) {
+    ctx.save();
+    ctx.strokeStyle = COLOR.cinnabar;
+    ctx.lineWidth = 1.6;
+    ctx.globalAlpha = 0.55;
+    ctx.strokeRect(hit.x - 2, hit.y - 2, hit.w + 4, hit.h + 4);
+    ctx.restore();
+  }
   if (back) {
     paintBrushSymbol(ctx, hit, selected, locked, 'back');
   } else if (mode) {
@@ -1672,8 +1691,16 @@ function drawChoice(ctx, hit, phone) {
 
 function drawMenus(ctx, vm, phone) {
   const items = vm.menu || vm.levels || vm.characters;
-  if (items && items.length) items.forEach((hit) => drawChoice(ctx, hit, phone));
-  if (vm.exit) drawChoice(ctx, vm.exit, phone);
+  if (items && items.length) items.forEach((hit) => drawChoice(ctx, hit, phone, vm));
+  if (vm.exit) drawChoice(ctx, vm.exit, phone, vm);
+}
+
+function deskColor(score, enhanced) {
+  if (!enhanced || !Number.isFinite(score) || score <= 0) return COLOR.desk;
+  if (score < 10) return COLOR.desk;
+  if (score < 25) return '#d8c2a3';
+  if (score < 50) return '#d9be9b';
+  return '#dbba92';
 }
 
 export function drawScene(ctx, width, height, vm, insets) {
@@ -1689,17 +1716,30 @@ export function drawScene(ctx, width, height, vm, insets) {
   const focusY = PAGE.h / 2 + (spot.y - PAGE.h / 2) * sheet;
   ctx.save();
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = COLOR.desk;
+  const bgColor = deskColor(vm.score, vm.enhanced);
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, width, height);
+  if (vm.enhanced) {
+    drawWoodGrain(ctx, width, height);
+  }
   const shake = shakeOffset(vm);
   ctx.translate(cam.ox + shake.x, cam.oy + shake.y);
   ctx.scale(cam.s, cam.s);
   ctx.translate(PAGE.w / 2, PAGE.h / 2);
   ctx.scale(zoom, zoom);
   ctx.translate(-focusX, -focusY);
-  ctx.fillStyle = COLOR.desk;
+  ctx.fillStyle = bgColor;
   ctx.fillRect(-40, -40, PAGE.w + 80, PAGE.h + 80);
-  drawPage(ctx);
+  if (vm.enhanced) {
+    drawCoffeeRing(ctx, 840, 110, 40);
+    drawDraftingPencil(ctx, 770, 520, 0.45);
+    drawEraserShavings(ctx, 740, 535);
+    drawColorPalette(ctx, 40, 480);
+  }
+  drawPage(ctx, vm);
+  if (vm.enhanced) {
+    drawPaperClip(ctx, 115, 30);
+  }
   drawPlay(ctx, vm, sheet);
   if (vm.count) drawCountdown(ctx, vm.count, phone);
   const title = drawTitle(ctx, sheet, phone);
@@ -1724,4 +1764,7 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.restore();
   }
   ctx.restore();
+  if (vm.enhanced) {
+    drawDeskLighting(ctx, width, height);
+  }
 }
