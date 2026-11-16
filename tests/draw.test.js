@@ -703,5 +703,26 @@ describe('drawScene', () => {
     }));
     expect(crownCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === MARKER.gold)).toBe(true);
     expect(crownCtx.calls.some((call) => call[0] === 'strokeRect')).toBe(true);
+
+    const mangaCtx = mockContext();
+    drawScene(mangaCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'playing',
+      streak: 16,
+      score: 16,
+      fleck: 0.8,
+      landDust: 0.5,
+      mood: 'snap',
+      clock: 1.5,
+    }));
+    expect(mangaCtx.calls.some((call) => call[0] === 'fillText' && call[1] === 'FEVER!!')).toBe(true);
+
+    const crashCtx = mockContext();
+    drawScene(crashCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      blot: 0.3,
+    }));
+    expect(crashCtx.calls.some((call) => call[0] === 'fillText' && call[1] === 'CRASH!!')).toBe(true);
   });
 });

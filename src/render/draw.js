@@ -10,6 +10,14 @@ import {
   drawPaperClip,
   drawWoodGrain,
 } from './desk.js';
+import {
+  drawFocusLines,
+  drawImpactShockwave,
+  drawMangaAura,
+  drawMangaCrash,
+  drawMangaEmotes,
+  drawMangaSfx,
+} from './manga.js';
 import backSymbolUrl from '../assets/back-symbol.png';
 import charactersSymbolUrl from '../assets/characters-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
@@ -1609,18 +1617,27 @@ function drawPlay(ctx, vm, sheet) {
     ctx.globalAlpha *= remain;
     drawRope(ctx, vm, false, true);
     drawShadow(ctx, vm.lift);
+    drawMangaAura(ctx, vm);
     drawFigure(ctx, vm);
     drawRope(ctx, vm, false, false);
     drawBalletShoes(ctx, vm);
     drawCharacterParticles(ctx, vm);
+    drawMangaEmotes(ctx, vm);
     ctx.restore();
   }
   if (vm.fleck > 0) {
     drawFleck(ctx, vm);
     drawInkBloom(ctx, vm);
+    drawMangaSfx(ctx, vm);
   }
-  if (vm.landDust > 0) drawLandDust(ctx, vm);
-  if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) drawSplash(ctx, vm);
+  if (vm.landDust > 0) {
+    drawLandDust(ctx, vm);
+    drawImpactShockwave(ctx, vm);
+  }
+  if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) {
+    drawSplash(ctx, vm);
+    drawMangaCrash(ctx, vm);
+  }
   ctx.restore();
 }
 
@@ -1846,6 +1863,7 @@ export function drawScene(ctx, width, height, vm, insets) {
   drawPage(ctx, vm);
   if (vm.enhanced) {
     drawPaperClip(ctx, 115, 30);
+    drawFocusLines(ctx, PAGE.w, PAGE.h, vm);
   }
   drawPlay(ctx, vm, sheet);
   if (vm.count) drawCountdown(ctx, vm.count, phone);
