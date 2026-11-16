@@ -190,6 +190,9 @@ describe('viewModel', () => {
     expect(viewModel({ ...state, cycle: 1 }).pencil).toBe(false);
     expect(viewModel({ ...state, skippedAt: state.time - 1 }).fleck).toBe(0);
     expect(viewModel({ ...state, skippedAt: null }).fleck).toBe(0);
+    expect(viewModel({ ...state, landedAt: state.time - 0.05 }).landDust).toBeGreaterThan(0);
+    expect(viewModel({ ...state, landedAt: state.time - 1 }).landDust).toBe(0);
+    expect(viewModel({ ...state, landedAt: null }).landDust).toBe(0);
 
     const done = viewModel(
       {

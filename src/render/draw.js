@@ -1147,9 +1147,34 @@ function ropePoint(angle, t, hands) {
   };
 }
 
+function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha) {
+  const ghostAngle = vm.angle - angleOffset;
+  if ((Math.cos(ghostAngle) < -0.2) !== behind) return;
+  const steps = 16;
+  ctx.save();
+  ctx.globalAlpha = (ctx.globalAlpha || 1) * alpha;
+  for (let i = 0; i < steps; i += 1) {
+    const t0 = i / steps;
+    const t1 = (i + 1) / steps;
+    const p0 = ropePoint(ghostAngle, t0, hands);
+    const p1 = ropePoint(ghostAngle, t1, hands);
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.strokeStyle = COLOR.pencilLine;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawRope(ctx, vm, dashed, behind) {
-  if ((Math.cos(vm.angle) < -0.2) !== behind) return;
   const hands = gripsWorld(vm);
+  if (vm.enhanced && !dashed && vm.phase === 'playing' && vm.score > 2) {
+    drawRopeGhost(ctx, vm, behind, hands, 0.12, 0.35);
+  }
+  if ((Math.cos(vm.angle) < -0.2) !== behind) return;
   const steps = 24;
   for (let i = 0; i < steps; i += 1) {
     const t0 = i / steps;
@@ -1252,6 +1277,27 @@ function drawFleck(ctx, vm) {
     ctx.moveTo(FIGURE.x - 28 + i * 8, y);
     ctx.lineTo(FIGURE.x - 42 + i * 8, y + 10);
     ctx.stroke();
+  });
+  ctx.restore();
+}
+
+function drawLandDust(ctx, vm) {
+  if (!vm.enhanced || !(vm.landDust > 0)) return;
+  const t = 1 - vm.landDust;
+  ctx.save();
+  ctx.globalAlpha = vm.landDust * 0.75;
+  ctx.fillStyle = COLOR.pencilLine;
+  const gy = FIGURE.ground + 14;
+  [-1, 1].forEach((dir) => {
+    [0.3, 0.6, 0.9].forEach((frac, i) => {
+      const dist = 14 + frac * 28 + t * 20;
+      const x = FIGURE.x + dir * dist;
+      const y = gy - 3 - (1 - frac) * 5 * (1 - t);
+      const r = (2 + i * 1.2) * (1 - t * 0.5);
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.fill();
+    });
   });
   ctx.restore();
 }
@@ -1450,6 +1496,7 @@ function drawPlay(ctx, vm, sheet) {
     ctx.restore();
   }
   if (vm.fleck > 0) drawFleck(ctx, vm);
+  if (vm.landDust > 0) drawLandDust(ctx, vm);
   if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) drawSplash(ctx, vm);
   ctx.restore();
 }

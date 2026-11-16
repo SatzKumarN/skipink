@@ -164,6 +164,9 @@ export function viewModel(state, options = {}) {
   const fleck = state.skippedAt != null && state.phase === 'playing'
     ? clamp01(1 - (state.time - state.skippedAt) / 0.12)
     : 0;
+  const landDust = state.landedAt != null && state.phase === 'playing' && state.time >= state.landedAt
+    ? clamp01(1 - (state.time - state.landedAt) / 0.15)
+    : 0;
   const sheet = sheetAmount(state, Boolean(options.reducedMotion));
   const recap = state.phase === 'playing' && state.recap && sheet > 0
     ? {
@@ -213,6 +216,7 @@ export function viewModel(state, options = {}) {
     count,
     showScore: state.phase === 'playing' || state.phase === 'over' || state.phase === 'cleared',
     fleck,
+    landDust,
     label: buttonLabel(state.phase, blot, count),
     waiting: ((state.phase === 'over' || state.phase === 'cleared') && blot < 1)
       || state.phase === 'count',

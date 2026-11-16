@@ -649,5 +649,14 @@ describe('drawScene', () => {
       splash: 0.42,
     }));
     expect(shakeCtx.calls.some((call) => call[0] === 'translate')).toBe(true);
+
+    const dustCtx = mockContext();
+    drawScene(dustCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'playing',
+      landDust: 0.8,
+      score: 5,
+    }));
+    expect(dustCtx.calls.some((call) => call[0] === 'arc')).toBe(true);
   });
 });
