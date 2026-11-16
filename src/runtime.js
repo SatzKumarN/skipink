@@ -132,8 +132,23 @@ export function startGame(env) {
     back = false;
     state = result.state;
     result.events.forEach((event) => {
-      const cue = SOUNDS[event];
-      if (cue) audio.play(cue);
+      let cue = SOUNDS[event];
+      let options = undefined;
+      if (viewMode === 'enhanced') {
+        if (event === 'skip') {
+          if (state.score > 0 && state.score % 5 === 0) {
+            cue = 'streak';
+          } else {
+            options = { freqMultiplier: 1 + (state.score % 10) * 0.02 };
+          }
+        } else if (event === 'clear') {
+          cue = 'crown';
+        }
+      }
+      if (cue) {
+        if (options) audio.play(cue, options);
+        else audio.play(cue);
+      }
     });
     const speed = state.phase === 'playing'
       ? angularVelocity(

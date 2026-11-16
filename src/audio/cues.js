@@ -2,9 +2,11 @@ export const CUES = {
   land: { freq: 220, dur: 0.05, type: 'triangle', gain: 0.07, noise: 0.25 },
   jump: { freq: 140, dur: 0.04, type: 'sine', gain: 0.04, noise: 0.12 },
   blot: { freq: 64, dur: 0.32, type: 'sine', gain: 0.14, noise: 0.55 },
+  streak: { freq: 330, dur: 0.06, type: 'triangle', gain: 0.08, noise: 0.15 },
+  crown: { freq: 440, dur: 0.14, type: 'triangle', gain: 0.09, noise: 0.1 },
 };
 
-export function playCue(ctx, name) {
+export function playCue(ctx, name, options = {}) {
   const cue = CUES[name];
   if (!ctx || !cue) return false;
   const time = ctx.currentTime || 0;
@@ -15,7 +17,8 @@ export function playCue(ctx, name) {
 
   const osc = ctx.createOscillator();
   osc.type = cue.type;
-  osc.frequency.setValueAtTime(cue.freq, time);
+  const freqMult = Number.isFinite(options.freqMultiplier) ? options.freqMultiplier : 1;
+  osc.frequency.setValueAtTime(cue.freq * freqMult, time);
   osc.connect(master);
   osc.start(time);
   osc.stop(time + cue.dur);

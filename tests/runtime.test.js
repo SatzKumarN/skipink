@@ -308,7 +308,14 @@ describe('startGame', () => {
   it('toggles view mode between classic and enhanced', () => {
     const toggle = document.createElement('button');
     document.body.append(toggle);
-    const box = harness({ toggle });
+    let updateImpl = null;
+    const box = harness({
+      toggle,
+      update: (state, dt, input) => {
+        if (updateImpl) return updateImpl(state, dt, input);
+        return frame(state, dt, input);
+      },
+    });
     box.mem.set(VIEW_STORAGE_KEY, 'enhanced');
     const game = startGame(box.env);
     expect(toggle.textContent).toBe('✦');
@@ -328,6 +335,27 @@ describe('startGame', () => {
     expect(box.paint).toHaveBeenCalled();
     const lastVm = box.paint.mock.calls.at(-1)[3];
     expect(lastVm.enhanced).toBe(true);
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'playing', score: 5 },
+      events: ['skip'],
+    });
+    box.queued.shift()(1016);
+    expect(box.audio.play).toHaveBeenCalledWith('streak');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'playing', score: 6 },
+      events: ['skip'],
+    });
+    box.queued.shift()(1032);
+    expect(box.audio.play).toHaveBeenCalledWith('land', { freqMultiplier: 1.12 });
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'cleared', score: 10 },
+      events: ['clear'],
+    });
+    box.queued.shift()(1048);
+    expect(box.audio.play).toHaveBeenCalledWith('crown');
 
     game.stop();
     toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
