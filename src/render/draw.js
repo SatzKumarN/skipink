@@ -1019,12 +1019,52 @@ function drawSamurai(ctx, spec, colors, tone) {
   ctx.fill();
 }
 
+let customCharacterImage = null;
+
+export function setCustomCharacterImage(img) {
+  customCharacterImage = img;
+}
+
+export function getCustomCharacterImage() {
+  return customCharacterImage;
+}
+
+function drawCustomFigure(ctx, vm, colors) {
+  const lift = vm.lift || 0;
+  const squash = 1 - Math.abs(lift) * 0.08;
+  const stretch = 1 + Math.abs(lift) * 0.1;
+
+  if (customCharacterImage && customCharacterImage.complete && customCharacterImage.naturalWidth > 0) {
+    const maxW = 76;
+    const maxH = 96;
+    const nw = customCharacterImage.naturalWidth;
+    const nh = customCharacterImage.naturalHeight;
+    const fit = Math.min(maxW / nw, maxH / nh);
+    const w = nw * fit;
+    const h = nh * fit;
+    ctx.save();
+    ctx.scale(squash, stretch);
+    ctx.drawImage(customCharacterImage, -w / 2, -h - 8, w, h);
+    ctx.restore();
+  } else {
+    ctx.strokeStyle = colors.skirt || COLOR.ink;
+    ctx.lineWidth = 2.4;
+    ctx.strokeRect(-28, -88, 56, 80);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 22px sans-serif';
+    ctx.fillStyle = colors.skirt || COLOR.ink;
+    ctx.fillText('+', 0, -48);
+  }
+}
+
 function drawCostume(ctx, spec, colors, character, tone) {
   if (character === 'pumpkin') drawPumpkin(ctx, spec, colors, tone);
   else if (character === 'samurai') drawSamurai(ctx, spec, colors, tone);
   else drawScarecrow(ctx, spec, colors, tone);
 }
 function figureKind(vm) {
+  if (vm?.character === 'custom') return 'custom';
   if (vm?.character === 'ballerina') return 'ballerina';
   if (COSTUME_IDS.has(vm?.character)) return vm.character;
   return 'bun';
@@ -1038,6 +1078,11 @@ function drawFigure(ctx, vm) {
   ctx.translate(origin.x, origin.y);
   ctx.rotate(origin.lean);
   const colors = dressColors(vm);
+  if (character === 'custom') {
+    drawCustomFigure(ctx, vm, colors);
+    ctx.restore();
+    return;
+  }
   if (COSTUME_IDS.has(character)) {
     drawCostume(ctx, spec, colors, character);
     if (vm?.enhanced) {
@@ -1067,6 +1112,25 @@ function drawCharacterPreview(ctx, hit, character, selected, locked) {
   const tone = locked
     ? COLOR.pencilLine
     : (selected || hit.done ? COLOR.cinnabar : COLOR.ink);
+  if (character === 'custom') {
+    if (customCharacterImage && customCharacterImage.complete && customCharacterImage.naturalWidth > 0) {
+      const nw = customCharacterImage.naturalWidth;
+      const nh = customCharacterImage.naturalHeight;
+      const fit = Math.min(hit.w / nw, (hit.h * 0.7) / nh);
+      const w = nw * fit * 0.8;
+      const h = nh * fit * 0.8;
+      ctx.drawImage(customCharacterImage, cx - w / 2, cy - h / 2, w, h);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillStyle = tone;
+      ctx.fillText('🖼️', cx, cy - 6);
+      ctx.font = 'bold 11px sans-serif';
+      ctx.fillText('CUSTOM', cx, cy + 16);
+    }
+    return;
+  }
   if (COSTUME_IDS.has(character)) {
     const fit = Math.min(hit.w / 156, hit.h / 230);
     ctx.save();
@@ -1792,7 +1856,7 @@ function drawChoice(ctx, hit, phone, vm) {
   const cx = hit.x + hit.w / 2;
   const cy = hit.y + hit.h / 2;
   const mode = hit.id === 'infinity' || hit.id === 'levels' || hit.id === 'characters';
-  const character = hit.id === 'bun' || hit.id === 'ballerina' || COSTUME_IDS.has(hit.id);
+  const character = hit.id === 'custom' || hit.id === 'bun' || hit.id === 'ballerina' || COSTUME_IDS.has(hit.id);
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;

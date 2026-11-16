@@ -42,13 +42,22 @@ describe('bindControls', () => {
     const steers = [];
     const backs = [];
     const toggles = [];
+    const colors = [];
+    const randoms = [];
+    const uploads = [];
     const unbind = bindControls(button, window, {
       onPress: (info) => presses.push(info),
       onSteer: (delta, code) => steers.push([delta, code]),
       onBack: () => backs.push('back'),
       onToggleView: () => toggles.push('toggle'),
+      onCycleColor: () => colors.push('color'),
+      onRandom: () => randoms.push('random'),
+      onUpload: () => uploads.push('upload'),
     });
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', cancelable: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', cancelable: true }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyU', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', cancelable: true }));
@@ -60,6 +69,9 @@ describe('bindControls', () => {
       cancelable: true,
     }));
     expect(toggles).toEqual(['toggle']);
+    expect(colors).toEqual(['color']);
+    expect(randoms).toEqual(['random']);
+    expect(uploads).toEqual(['upload']);
     expect(steers).toEqual([[1, 'ArrowDown'], [-1, 'ArrowUp']]);
     expect(backs).toEqual(['back']);
     expect(presses).toHaveLength(2);

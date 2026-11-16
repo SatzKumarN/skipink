@@ -386,4 +386,84 @@ describe('startGame', () => {
     toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
     expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
   });
+
+  it('handles color cycle, random choice, custom upload, and desk palette clicks', () => {
+    const colorToggle = document.createElement('button');
+    const randomToggle = document.createElement('button');
+    const uploadToggle = document.createElement('button');
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    const announcer = document.createElement('div');
+    document.body.append(colorToggle, randomToggle, uploadToggle, fileInput, announcer);
+
+    const box = harness({
+      colorToggle,
+      randomToggle,
+      uploadToggle,
+      fileInput,
+      announcer,
+    });
+    const game = startGame(box.env);
+
+    // Color cycle
+    colorToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(game.getState().dress).toBe(1);
+    expect(announcer.textContent).toContain('Outfit color:');
+
+    // Key shortcut C
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', cancelable: true }));
+    expect(game.getState().dress).toBe(2);
+
+    // Random choice
+    randomToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(announcer.textContent).toContain('Randomized:');
+
+    // Key shortcut R
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', cancelable: true }));
+    expect(announcer.textContent).toContain('Randomized:');
+
+    // Upload trigger
+    let clicked = false;
+    fileInput.click = () => { clicked = true; };
+    uploadToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(clicked).toBe(true);
+
+    // Key shortcut U
+    clicked = false;
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyU', cancelable: true }));
+    expect(clicked).toBe(true);
+
+    // File change event with custom image
+    const file = new File(['dummy'], 'character.png', { type: 'image/png' });
+    Object.defineProperty(fileInput, 'files', {
+      value: [file],
+      writable: true,
+    });
+
+    // Mock FileReader
+    const origFileReader = globalThis.FileReader;
+    class MockFileReader {
+      readAsDataURL() {
+        this.onload?.({ target: { result: 'data:image/png;base64,mock' } });
+      }
+    }
+    globalThis.FileReader = MockFileReader;
+
+    fileInput.dispatchEvent(new Event('change'));
+    expect(game.getState().character).toBe('custom');
+    expect(announcer.textContent).toBe('Custom character uploaded!');
+    globalThis.FileReader = origFileReader;
+
+    // Click on desk color palette at (50, 480)
+    box.queued.shift()(1000);
+    box.button.dispatchEvent(new PointerEvent('pointerdown', {
+      button: 0,
+      clientX: 50,
+      clientY: 480,
+      cancelable: true,
+    }));
+    box.queued.shift()(1016);
+
+    game.stop();
+  });
 });

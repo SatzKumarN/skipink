@@ -1,8 +1,11 @@
 import {
   CHARACTERS,
   CHARACTER_STORAGE_KEY,
+  CUSTOM_CHAR_STORAGE_KEY,
   DEFAULT_CHARACTER,
   DEFAULT_VIEW,
+  DRESS_STORAGE_KEY,
+  DRESSES,
   LEGACY_STORAGE_KEY,
   LEVEL_STORAGE_KEY,
   LEVELS,
@@ -25,6 +28,7 @@ function clampCleared(raw) {
 
 export function resolveCharacter(id) {
   const key = typeof id === 'string' ? id : '';
+  if (key === 'custom') return 'custom';
   return CHARACTERS.some((choice) => choice.id === key) ? key : DEFAULT_CHARACTER;
 }
 
@@ -117,5 +121,49 @@ export function writeView(storage, view) {
     return safe;
   } catch {
     return DEFAULT_VIEW;
+  }
+}
+
+export function readDress(storage) {
+  try {
+    const raw = Number(storage.getItem(DRESS_STORAGE_KEY));
+    if (!Number.isFinite(raw)) return 0;
+    return ((Math.floor(raw) % DRESSES.length) + DRESSES.length) % DRESSES.length;
+  } catch {
+    return 0;
+  }
+}
+
+export function writeDress(storage, dress) {
+  try {
+    const raw = Number(dress);
+    const safe = Number.isFinite(raw)
+      ? ((Math.floor(raw) % DRESSES.length) + DRESSES.length) % DRESSES.length
+      : 0;
+    storage.setItem(DRESS_STORAGE_KEY, String(safe));
+    return safe;
+  } catch {
+    return 0;
+  }
+}
+
+export function readCustomCharacter(storage) {
+  try {
+    const item = storage.getItem(CUSTOM_CHAR_STORAGE_KEY);
+    return typeof item === 'string' && item.startsWith('data:image/') ? item : null;
+  } catch {
+    return null;
+  }
+}
+
+export function writeCustomCharacter(storage, dataUrl) {
+  try {
+    if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
+      storage.setItem(CUSTOM_CHAR_STORAGE_KEY, dataUrl);
+      return dataUrl;
+    }
+    return null;
+  } catch {
+    return null;
   }
 }

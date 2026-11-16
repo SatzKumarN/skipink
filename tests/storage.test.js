@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   CHARACTER_STORAGE_KEY,
+  CUSTOM_CHAR_STORAGE_KEY,
   DEFAULT_CHARACTER,
   DEFAULT_VIEW,
+  DRESS_STORAGE_KEY,
   LEGACY_STORAGE_KEY,
   LEVEL_STORAGE_KEY,
   STORAGE_KEY,
@@ -12,6 +14,8 @@ import {
   readBest,
   readCharacter,
   readCleared,
+  readCustomCharacter,
+  readDress,
   readView,
   resolveCharacter,
   resolveView,
@@ -19,6 +23,8 @@ import {
   writeBest,
   writeCharacter,
   writeCleared,
+  writeCustomCharacter,
+  writeDress,
   writeView,
 } from '../src/storage.js';
 
@@ -132,5 +138,33 @@ describe('view preference', () => {
     expect(readView({ getItem: () => { throw new Error('blocked'); } })).toBe(DEFAULT_VIEW);
     expect(writeView({ setItem: () => { throw new Error('blocked'); } }, 'enhanced'))
       .toBe(DEFAULT_VIEW);
+  });
+});
+
+describe('dress preference and custom character', () => {
+  it('reads and writes dress index with wrap-around', () => {
+    const store = memory([[DRESS_STORAGE_KEY, '2']]);
+    expect(readDress(store)).toBe(2);
+    expect(writeDress(store, 4)).toBe(4);
+    expect(store.values.get(DRESS_STORAGE_KEY)).toBe('4');
+    expect(writeDress(store, 'invalid')).toBe(0);
+    expect(readDress(memory([[DRESS_STORAGE_KEY, 'invalid']]))).toBe(0);
+    expect(readDress({ getItem: () => { throw new Error('blocked'); } })).toBe(0);
+    expect(writeDress({ setItem: () => { throw new Error('blocked'); } }, 2)).toBe(0);
+  });
+
+  it('reads and writes custom character data URLs', () => {
+    const validData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    const store = memory([[CUSTOM_CHAR_STORAGE_KEY, validData]]);
+    expect(readCustomCharacter(store)).toBe(validData);
+    expect(writeCustomCharacter(store, validData)).toBe(validData);
+    expect(store.values.get(CUSTOM_CHAR_STORAGE_KEY)).toBe(validData);
+
+    expect(writeCustomCharacter(store, 'not-an-image')).toBeNull();
+    expect(readCustomCharacter(memory([[CUSTOM_CHAR_STORAGE_KEY, 'invalid']]))).toBeNull();
+    expect(readCustomCharacter({ getItem: () => { throw new Error('blocked'); } })).toBeNull();
+    expect(writeCustomCharacter({ setItem: () => { throw new Error('blocked'); } }, validData)).toBeNull();
+
+    expect(resolveCharacter('custom')).toBe('custom');
   });
 });

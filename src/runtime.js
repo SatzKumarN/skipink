@@ -1,3 +1,4 @@
+import { DRESS_NAMES, DRESSES } from './config.js';
 import { createSynth, ropeHum } from './audio/synth.js';
 import { createState, frame } from './core/game.js';
 import { menuZoom, pageFromScreen, titleAnchor } from './core/menu.js';
@@ -5,15 +6,19 @@ import { angularVelocity, ropeProgress } from './core/rope.js';
 import { viewModel } from './core/present.js';
 import { bindControls } from './input/controls.js';
 import { camera, fitCanvas, readSafeInsets } from './render/fit.js';
-import { drawScene } from './render/draw.js';
+import { drawScene, setCustomCharacterImage } from './render/draw.js';
 import {
   readBest,
   readCharacter,
   readCleared,
+  readCustomCharacter,
+  readDress,
   readView,
   writeBest,
   writeCharacter,
   writeCleared,
+  writeCustomCharacter,
+  writeDress,
   writeView,
 } from './storage.js';
 
@@ -43,12 +48,26 @@ export function startGame(env) {
   let clearedWritten = readCleared(storage);
   let characterWritten = readCharacter(storage);
   let viewMode = readView(storage);
+  let dressWritten = readDress(storage);
   let state = createState(bestWritten, clearedWritten, characterWritten);
+  state.dress = dressWritten;
+
+  const savedCustom = readCustomCharacter(storage);
+  if (savedCustom && typeof Image !== 'undefined') {
+    const img = new Image();
+    img.onload = () => setCustomCharacterImage(img);
+    img.src = savedCustom;
+  }
+
   const canvas = env.canvas;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('This browser cannot draw the sketchbook page.');
   const button = env.button;
   const toggle = env.toggle || null;
+  const colorToggle = env.colorToggle || null;
+  const randomToggle = env.randomToggle || null;
+  const uploadToggle = env.uploadToggle || null;
+  const fileInput = env.fileInput || null;
   const announcer = env.announcer || null;
   let lastMessage = '';
 
@@ -62,13 +81,70 @@ export function startGame(env) {
   syncToggle();
 
   function onToggle(event) {
-    event.preventDefault();
-    event.stopPropagation();
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
     viewMode = viewMode === 'enhanced' ? 'classic' : 'enhanced';
     writeView(storage, viewMode);
     syncToggle();
   }
   if (toggle) toggle.addEventListener('pointerdown', onToggle);
+
+  function onCycleColor(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    state.dress = (state.dress + 1) % DRESSES.length;
+    writeDress(storage, state.dress);
+    audio.play?.('jump', { freqMultiplier: 1.15 });
+    if (announcer) announcer.textContent = `Outfit color: ${DRESS_NAMES[state.dress]}`;
+  }
+  if (colorToggle) colorToggle.addEventListener('pointerdown', onCycleColor);
+
+  function onRandom(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    const chars = ['bun', 'ballerina', 'scarecrow', 'pumpkin', 'samurai'];
+    if (readCustomCharacter(storage)) chars.push('custom');
+    const randChar = chars[Math.floor(Math.random() * chars.length)];
+    const randDress = Math.floor(Math.random() * DRESSES.length);
+    state.character = randChar;
+    state.dress = randDress;
+    writeCharacter(storage, randChar);
+    writeDress(storage, randDress);
+    audio.play?.('jump', { freqMultiplier: 1.3 });
+    if (announcer) announcer.textContent = `Randomized: ${randChar} (${DRESS_NAMES[randDress]})`;
+  }
+  if (randomToggle) randomToggle.addEventListener('pointerdown', onRandom);
+
+  function onUpload(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    fileInput?.click?.();
+  }
+  if (uploadToggle) uploadToggle.addEventListener('pointerdown', onUpload);
+
+  function onFileChange(event) {
+    const file = event?.target?.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e?.target?.result;
+      if (typeof dataUrl === 'string') {
+        writeCustomCharacter(storage, dataUrl);
+        if (typeof Image !== 'undefined') {
+          const img = new Image();
+          img.onload = () => setCustomCharacterImage(img);
+          img.src = dataUrl;
+        }
+        state.character = 'custom';
+        writeCharacter(storage, 'custom');
+        audio.play?.('crown');
+        if (announcer) announcer.textContent = 'Custom character uploaded!';
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+  if (fileInput) fileInput.addEventListener('change', onFileChange);
+
   let pressed = false;
   let pointer = null;
   let steer = 0;
@@ -97,9 +173,16 @@ export function startGame(env) {
       back = true;
     },
     onToggleView() {
-      viewMode = viewMode === 'enhanced' ? 'classic' : 'enhanced';
-      writeView(storage, viewMode);
-      syncToggle();
+      onToggle();
+    },
+    onCycleColor() {
+      onCycleColor();
+    },
+    onRandom() {
+      onRandom();
+    },
+    onUpload() {
+      onUpload();
     },
   });
   let last = env.now();
@@ -124,6 +207,17 @@ export function startGame(env) {
     if (!live) return;
     const phone = phoneLayout(lastBox.w, lastBox.h);
     const pointing = resolvePointer(pointer, phone);
+    if (pointing.x != null && pointing.y != null) {
+      if (pointing.x >= 25 && pointing.x <= 115 && pointing.y >= 460 && pointing.y <= 540) {
+        const col = Math.min(2, Math.max(0, Math.floor((pointing.x - 25) / 30)));
+        const row = Math.min(1, Math.max(0, Math.floor((pointing.y - 460) / 40)));
+        const idx = row * 3 + col;
+        state.dress = idx;
+        writeDress(storage, idx);
+        audio.play?.('jump', { freqMultiplier: 1.15 });
+        if (announcer) announcer.textContent = `Outfit color: ${DRESS_NAMES[idx]}`;
+      }
+    }
     const result = update(state, (now - last) / 1000, {
       pressed,
       steer,
@@ -210,6 +304,10 @@ export function startGame(env) {
       live = false;
       unbind();
       if (toggle) toggle.removeEventListener('pointerdown', onToggle);
+      if (colorToggle) colorToggle.removeEventListener('pointerdown', onCycleColor);
+      if (randomToggle) randomToggle.removeEventListener('pointerdown', onRandom);
+      if (uploadToggle) uploadToggle.removeEventListener('pointerdown', onUpload);
+      if (fileInput) fileInput.removeEventListener('change', onFileChange);
     },
   };
 }

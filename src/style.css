@@ -50,25 +50,31 @@ canvas {
   cursor: default;
 }
 
-.view-toggle {
+.top-controls {
   position: fixed;
   top: 12px;
   right: 12px;
   z-index: 10;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.control-btn {
   width: 36px;
   height: 36px;
   border: 2px solid #b7a790;
   border-radius: 50%;
   background: #f4ead7;
   color: #8d7d68;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1;
   cursor: pointer;
   touch-action: none;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   user-select: none;
-  transition: border-color 0.25s ease, color 0.25s ease, background 0.25s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -77,9 +83,23 @@ canvas {
   box-shadow: 0 2px 6px rgba(27, 23, 20, 0.12);
 }
 
-.view-toggle:hover {
+.control-btn:hover {
   border-color: #8d7d68;
   color: #1b1714;
+  transform: scale(1.08);
+}
+
+.control-btn:active {
+  transform: scale(0.95);
+}
+
+.control-btn:focus-visible {
+  outline: 3px solid #c4452d;
+  outline-offset: 2px;
+}
+
+.view-toggle {
+  font-size: 18px;
 }
 
 .view-toggle.enhanced {
@@ -90,11 +110,6 @@ canvas {
 
 .view-toggle.enhanced:hover {
   background: #e5d7c2;
-}
-
-.view-toggle:focus-visible {
-  outline: 3px solid #c4452d;
-  outline-offset: 2px;
 }
 
 @media (max-width: 760px) and (orientation: portrait) {
