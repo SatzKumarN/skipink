@@ -193,6 +193,8 @@ describe('viewModel', () => {
     expect(viewModel({ ...state, landedAt: state.time - 0.05 }).landDust).toBeGreaterThan(0);
     expect(viewModel({ ...state, landedAt: state.time - 1 }).landDust).toBe(0);
     expect(viewModel({ ...state, landedAt: null }).landDust).toBe(0);
+    expect(viewModel({ ...state, phase: 'playing', score: 7 }).streak).toBe(7);
+    expect(viewModel({ ...state, phase: 'menu', score: 7 }).streak).toBe(0);
 
     const done = viewModel(
       {

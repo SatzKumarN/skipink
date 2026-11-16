@@ -307,10 +307,12 @@ describe('startGame', () => {
 
   it('toggles view mode between classic and enhanced', () => {
     const toggle = document.createElement('button');
-    document.body.append(toggle);
+    const announcer = document.createElement('div');
+    document.body.append(toggle, announcer);
     let updateImpl = null;
     const box = harness({
       toggle,
+      announcer,
       update: (state, dt, input) => {
         if (updateImpl) return updateImpl(state, dt, input);
         return frame(state, dt, input);
@@ -356,6 +358,21 @@ describe('startGame', () => {
     });
     box.queued.shift()(1048);
     expect(box.audio.play).toHaveBeenCalledWith('crown');
+    expect(announcer.textContent).toBe('Level cleared. Score 10');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'over', score: 3 },
+      events: ['miss'],
+    });
+    box.queued.shift()(1064);
+    expect(announcer.textContent).toBe('Game over. Score 3');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'count', time: 1 },
+      events: [],
+    });
+    box.queued.shift()(1080);
+    expect(announcer.textContent).toBe('2');
 
     game.stop();
     toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));

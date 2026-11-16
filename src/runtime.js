@@ -49,6 +49,8 @@ export function startGame(env) {
   if (!context) throw new Error('This browser cannot draw the sketchbook page.');
   const button = env.button;
   const toggle = env.toggle || null;
+  const announcer = env.announcer || null;
+  let lastMessage = '';
 
   function syncToggle() {
     if (!toggle) return;
@@ -182,6 +184,17 @@ export function startGame(env) {
     paint(context, box.w, box.h, vm, lastInsets);
     button.textContent = vm.label;
     button.disabled = vm.waiting;
+    if (announcer) {
+      let msg = '';
+      if (state.phase === 'playing') msg = `Score ${state.score}`;
+      else if (state.phase === 'over') msg = `Game over. Score ${state.score}`;
+      else if (state.phase === 'cleared') msg = `Level cleared. Score ${state.score}`;
+      else if (state.phase === 'count' && vm.count) msg = String(vm.count);
+      if (msg && msg !== lastMessage) {
+        announcer.textContent = msg;
+        lastMessage = msg;
+      }
+    }
     if (live) env.raf(tick);
   }
 

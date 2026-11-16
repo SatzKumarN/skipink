@@ -184,7 +184,13 @@ function umbrellaHem(sx, srx, sry, t) {
 }
 
 function dressColors(vm) {
-  const dress = vm.dress || {};
+  if (vm?.enhanced && vm?.crowned && (vm?.phase === 'over' || vm?.phase === 'cleared')) {
+    return {
+      skirt: MARKER.gold,
+      deep: '#b8860b',
+    };
+  }
+  const dress = vm?.dress || {};
   return {
     skirt: dress.skirt || COLOR.skirt,
     deep: dress.deep || COLOR.skirtDeep,
@@ -1284,6 +1290,11 @@ function drawScore(ctx, vm) {
       ctx.fillText('new', 748, 156);
     }
   }
+  if (vm.enhanced && vm.streak >= 5 && vm.phase === 'playing') {
+    ctx.font = `18px ${PEN}`;
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.fillText(`${vm.streak} streak!`, 820, vm.showBest ? 208 : 182);
+  }
   ctx.restore();
 }
 
@@ -1332,6 +1343,81 @@ function drawInkBloom(ctx, vm) {
   ctx.beginPath();
   ctx.ellipse(FIGURE.x, gy, 8 * (1 - vm.fleck * 0.3), 3.5 * (1 - vm.fleck * 0.3), 0, 0, Math.PI * 2);
   ctx.fill();
+  ctx.restore();
+}
+
+function drawCharacterParticles(ctx, vm) {
+  if (!vm.enhanced || !(vm.fleck > 0) || vm.phase !== 'playing') return;
+  const character = figureKind(vm);
+  const t = 1 - vm.fleck;
+  const fy = FIGURE.ground - vm.lift * 46 - 20;
+  ctx.save();
+  ctx.globalAlpha = vm.fleck * 0.85;
+
+  if (character === 'ballerina') {
+    ctx.font = '16px serif';
+    ctx.fillStyle = vm.dress?.skirt || COLOR.skirt;
+    [-18, 18].forEach((ox, i) => {
+      const x = FIGURE.x + ox + (i === 0 ? -1 : 1) * t * 14;
+      const y = fy - 10 - t * 30 - i * 8;
+      ctx.fillText('♪', x, y);
+    });
+  } else if (character === 'scarecrow') {
+    ctx.strokeStyle = MARKER.straw;
+    ctx.lineWidth = 2;
+    [-16, 0, 16].forEach((ox, i) => {
+      const x = FIGURE.x + ox + Math.sin(t * 4 + i) * 12;
+      const y = fy - t * 24 - i * 6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 5, y - 6);
+      ctx.stroke();
+    });
+  } else if (character === 'pumpkin') {
+    [-14, 14].forEach((ox, i) => {
+      ctx.fillStyle = i === 0 ? MARKER.pumpkin : MARKER.leaf;
+      const x = FIGURE.x + ox + (i === 0 ? -1 : 1) * t * 16;
+      const y = fy - t * 20 - i * 5;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 4, 2.5, i * 0.8 + t, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  } else if (character === 'samurai') {
+    ctx.strokeStyle = MARKER.gold;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(FIGURE.x, fy, 26 + t * 10, -0.4, 0.4);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = COLOR.ink;
+    [-12, 0, 12].forEach((ox, i) => {
+      const x = FIGURE.x + ox + (i - 1) * t * 12;
+      const y = fy - t * 26;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2 * (1 - t * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+  ctx.restore();
+}
+
+function drawCelebrationCrown(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = MARKER.gold;
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y);
+  ctx.lineTo(x - 20, y - 14);
+  ctx.lineTo(x - 8, y - 8);
+  ctx.lineTo(x, y - 18);
+  ctx.lineTo(x + 8, y - 8);
+  ctx.lineTo(x + 20, y - 14);
+  ctx.lineTo(x + 16, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1526,6 +1612,7 @@ function drawPlay(ctx, vm, sheet) {
     drawFigure(ctx, vm);
     drawRope(ctx, vm, false, false);
     drawBalletShoes(ctx, vm);
+    drawCharacterParticles(ctx, vm);
     ctx.restore();
   }
   if (vm.fleck > 0) {
@@ -1624,6 +1711,9 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
     ctx.fillStyle = COLOR.cinnabar;
     ctx.font = `22px ${PEN}`;
     ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
+    if (vm.enhanced) {
+      drawCelebrationCrown(ctx, x, scoreY - (phone ? 40 : 54));
+    }
   }
   ctx.restore();
 }

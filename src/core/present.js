@@ -194,6 +194,7 @@ export function viewModel(state, options = {}) {
     character: resolveCharacter(state.character),
     won: state.phase === 'cleared',
     score: state.score,
+    streak: state.phase === 'playing' ? state.score : 0,
     best: state.best,
     showBest: state.best > 0 && state.mode !== 'level',
     crowned: Boolean(state.crowned) && state.score > 0,

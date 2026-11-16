@@ -677,5 +677,29 @@ describe('drawScene', () => {
     const highCtx = mockContext();
     drawScene(highCtx, 900, 640, scene({ enhanced: true, score: 60 }));
     expect(highCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === '#dbba92')).toBe(true);
+
+    const chars = ['ballerina', 'scarecrow', 'pumpkin', 'samurai', 'bun'];
+    chars.forEach((c) => {
+      const cCtx = mockContext();
+      drawScene(cCtx, 900, 640, scene({
+        enhanced: true,
+        phase: 'playing',
+        fleck: 0.6,
+        character: c,
+        streak: 8,
+      }));
+      expect(cCtx.calls.some((call) => call[0] === 'fillText' && call[1] === '8 streak!')).toBe(true);
+    });
+
+    const crownCtx = mockContext();
+    drawScene(crownCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      crowned: true,
+      blot: 1,
+      sheet: 1,
+      score: 12,
+    }));
+    expect(crownCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === MARKER.gold)).toBe(true);
   });
 });
