@@ -11,6 +11,10 @@ import {
   drawWoodGrain,
 } from './desk.js';
 import {
+  drawEnhancedCostume,
+  drawEnhancedFigure,
+} from './character.js';
+import {
   drawFocusLines,
   drawImpactShockwave,
   drawMangaAura,
@@ -1036,6 +1040,9 @@ function drawFigure(ctx, vm) {
   const colors = dressColors(vm);
   if (COSTUME_IDS.has(character)) {
     drawCostume(ctx, spec, colors, character);
+    if (vm?.enhanced) {
+      drawEnhancedCostume(ctx, vm, costumeFrame(spec), character, colors);
+    }
     ctx.restore();
     return;
   }
@@ -1047,6 +1054,9 @@ function drawFigure(ctx, vm) {
   drawBody(ctx, spec, colors, character);
   if (character === 'ballerina') drawBallerinaHead(ctx, spec);
   else drawBunHead(ctx, sx, hy);
+  if (vm?.enhanced) {
+    drawEnhancedFigure(ctx, vm, spec, character, colors);
+  }
   drawHands(ctx, spec, character);
   ctx.restore();
 }
