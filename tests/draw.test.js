@@ -655,8 +655,20 @@ describe('drawScene', () => {
       enhanced: true,
       phase: 'playing',
       landDust: 0.8,
+      fleck: 0.7,
       score: 5,
     }));
     expect(dustCtx.calls.some((call) => call[0] === 'arc')).toBe(true);
+    expect(dustCtx.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+
+    const breatheCtx = mockContext();
+    drawScene(breatheCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'menu',
+      clock: 1.2,
+      character: 'ballerina',
+      menu: [{ id: 'infinity', selected: true, x: 100, y: 100, w: 100, h: 100 }],
+    }));
+    expect(breatheCtx.calls.some((call) => call[0] === 'rotate')).toBe(true);
   });
 });

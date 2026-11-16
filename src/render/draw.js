@@ -253,14 +253,24 @@ function gripsLocal(spec, character = 'bun') {
   ];
 }
 
+function figureOrigin(vm) {
+  let y = FIGURE.ground - vm.lift * 46;
+  let lean = poseOf(vm).lean;
+  if (vm.enhanced && (vm.phase === 'menu' || vm.phase === 'count')) {
+    const breath = Math.sin((vm.clock || 0) * 2.5);
+    y += breath * 1.8;
+    lean += breath * 0.012;
+  }
+  return { x: FIGURE.x, y, lean };
+}
+
 function toWorld(vm, local) {
-  const spec = poseOf(vm);
-  const originY = FIGURE.ground - vm.lift * 46;
-  const c = Math.cos(spec.lean);
-  const s = Math.sin(spec.lean);
+  const origin = figureOrigin(vm);
+  const c = Math.cos(origin.lean);
+  const s = Math.sin(origin.lean);
   return {
-    x: FIGURE.x + local.x * c - local.y * s,
-    y: originY + local.x * s + local.y * c,
+    x: origin.x + local.x * c - local.y * s,
+    y: origin.y + local.x * s + local.y * c,
   };
 }
 
@@ -563,10 +573,10 @@ function drawBalletShoes(ctx, vm) {
   if (figureKind(vm) !== 'ballerina') return;
   const spec = poseOf(vm);
   const pose = balletPose(spec);
-  const y = FIGURE.ground - vm.lift * 46;
+  const origin = figureOrigin(vm);
   ctx.save();
-  ctx.translate(FIGURE.x, y);
-  ctx.rotate(spec.lean);
+  ctx.translate(origin.x, origin.y);
+  ctx.rotate(origin.lean);
   drawBalletFeet(ctx, pose, dressColors(vm).skirt);
   ctx.restore();
 }
@@ -996,10 +1006,10 @@ function figureKind(vm) {
 function drawFigure(ctx, vm) {
   const spec = poseOf(vm);
   const character = figureKind(vm);
-  const y = FIGURE.ground - vm.lift * 46;
+  const origin = figureOrigin(vm);
   ctx.save();
-  ctx.translate(FIGURE.x, y);
-  ctx.rotate(spec.lean);
+  ctx.translate(origin.x, origin.y);
+  ctx.rotate(origin.lean);
   const colors = dressColors(vm);
   if (COSTUME_IDS.has(character)) {
     drawCostume(ctx, spec, colors, character);
@@ -1302,6 +1312,18 @@ function drawLandDust(ctx, vm) {
   ctx.restore();
 }
 
+function drawInkBloom(ctx, vm) {
+  if (!vm.enhanced || !(vm.fleck > 0)) return;
+  ctx.save();
+  ctx.globalAlpha = vm.fleck * 0.45;
+  ctx.fillStyle = COLOR.ink;
+  const gy = FIGURE.ground + 14;
+  ctx.beginPath();
+  ctx.ellipse(FIGURE.x, gy, 8 * (1 - vm.fleck * 0.3), 3.5 * (1 - vm.fleck * 0.3), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 function inkRand(seed) {
   let s = (Math.imul(Math.floor(Math.abs(seed) * 1000003) || 1, 0x9e3779b1)) >>> 0;
   return () => {
@@ -1495,7 +1517,10 @@ function drawPlay(ctx, vm, sheet) {
     drawBalletShoes(ctx, vm);
     ctx.restore();
   }
-  if (vm.fleck > 0) drawFleck(ctx, vm);
+  if (vm.fleck > 0) {
+    drawFleck(ctx, vm);
+    drawInkBloom(ctx, vm);
+  }
   if (vm.landDust > 0) drawLandDust(ctx, vm);
   if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) drawSplash(ctx, vm);
   ctx.restore();

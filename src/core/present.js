@@ -185,6 +185,7 @@ export function viewModel(state, options = {}) {
     phase: state.phase,
     mode: state.mode,
     enhanced,
+    clock,
     level: state.level,
     goal: state.goal,
     unlocked: state.unlocked,
