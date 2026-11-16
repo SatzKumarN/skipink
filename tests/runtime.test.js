@@ -374,6 +374,14 @@ describe('startGame', () => {
     box.queued.shift()(1080);
     expect(announcer.textContent).toBe('2');
 
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
+    expect(toggle.textContent).toBe('✧');
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('classic');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
+    expect(toggle.textContent).toBe('✦');
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
+
     game.stop();
     toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
     expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');

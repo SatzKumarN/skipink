@@ -1715,6 +1715,23 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
       drawCelebrationCrown(ctx, x, scoreY - (phone ? 40 : 54));
     }
   }
+  if (vm.enhanced && vm.goal && ease > 0.8) {
+    ctx.save();
+    ctx.globalAlpha = (ease - 0.8) / 0.2;
+    const barW = phone ? 120 : 160;
+    const barH = 7;
+    const barX = title.x - barW / 2;
+    const barY = title.y + (phone ? 136 : 194);
+    ctx.strokeStyle = COLOR.pencilLine;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(barX, barY, barW, barH);
+    const progressW = Math.min(barW, (vm.score / vm.goal) * barW);
+    if (progressW > 0) {
+      ctx.fillStyle = vm.phase === 'cleared' ? COLOR.cinnabar : COLOR.pencil;
+      ctx.fillRect(barX + 1.5, barY + 1.5, Math.max(0, progressW - 3), barH - 3);
+    }
+    ctx.restore();
+  }
   ctx.restore();
 }
 

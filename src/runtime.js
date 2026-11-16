@@ -96,6 +96,11 @@ export function startGame(env) {
     onBack() {
       back = true;
     },
+    onToggleView() {
+      viewMode = viewMode === 'enhanced' ? 'classic' : 'enhanced';
+      writeView(storage, viewMode);
+      syncToggle();
+    },
   });
   let last = env.now();
   let live = true;

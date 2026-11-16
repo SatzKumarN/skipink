@@ -41,11 +41,14 @@ describe('bindControls', () => {
     const presses = [];
     const steers = [];
     const backs = [];
+    const toggles = [];
     const unbind = bindControls(button, window, {
       onPress: (info) => presses.push(info),
       onSteer: (delta, code) => steers.push([delta, code]),
       onBack: () => backs.push('back'),
+      onToggleView: () => toggles.push('toggle'),
     });
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowDown', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'ArrowUp', cancelable: true }));
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape', cancelable: true }));
@@ -56,6 +59,7 @@ describe('bindControls', () => {
       clientY: 34,
       cancelable: true,
     }));
+    expect(toggles).toEqual(['toggle']);
     expect(steers).toEqual([[1, 'ArrowDown'], [-1, 'ArrowUp']]);
     expect(backs).toEqual(['back']);
     expect(presses).toHaveLength(2);

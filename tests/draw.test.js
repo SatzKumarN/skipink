@@ -698,8 +698,10 @@ describe('drawScene', () => {
       crowned: true,
       blot: 1,
       sheet: 1,
-      score: 12,
+      score: 8,
+      goal: 10,
     }));
     expect(crownCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === MARKER.gold)).toBe(true);
+    expect(crownCtx.calls.some((call) => call[0] === 'strokeRect')).toBe(true);
   });
 });
