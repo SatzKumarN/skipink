@@ -9,6 +9,11 @@ export const STORAGE_KEY = 'skipink-best';
 export const LEGACY_STORAGE_KEY = 'inkskip-best';
 export const LEVEL_STORAGE_KEY = 'skipink-cleared';
 export const CHARACTER_STORAGE_KEY = 'skipink-character';
+export const DRESS_STORAGE_KEY = 'skipink-dress';
+export const VIEW_STORAGE_KEY = 'skipink-view';
+export const VIEW_MODES = ['classic', 'enhanced'];
+export const DEFAULT_VIEW = 'classic';
+export const DRESS_NAMES = ['Purple', 'Crimson', 'Jade', 'Amber', 'Navy', 'Plum'];
 
 export const LEVELS = Array.from({ length: 10 }, (_, index) => ({
   id: index + 1,

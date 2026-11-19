@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { camera, fitCanvas, readSafeInsets } from '../src/render/fit.js';
+import {
+  LANDSCAPE_STAGE,
+  PHONE_STAGE,
+  camera,
+  fitCanvas,
+  phoneLayout,
+  readSafeInsets,
+  stageForViewport,
+} from '../src/render/fit.js';
 
 describe('fitCanvas', () => {
   it('sizes the backing store from the window and caps the pixel ratio', () => {
@@ -94,5 +102,22 @@ describe('readSafeInsets', () => {
     expect(readSafeInsets({ getComputedStyle: () => { throw new Error('no'); } })).toEqual({
       top: 0, right: 0, bottom: 0, left: 0,
     });
+  });
+});
+
+describe('phoneLayout & stageForViewport', () => {
+  it('identifies portrait phones and tablets', () => {
+    expect(phoneLayout(390, 844)).toBe(true);
+    expect(phoneLayout(768, 1024)).toBe(true);
+    expect(phoneLayout(960, 640)).toBe(false);
+    expect(phoneLayout(844, 390)).toBe(false);
+    expect(phoneLayout(0, 0)).toBe(false);
+  });
+
+  it('provides stages for portrait and compact landscape viewports', () => {
+    expect(stageForViewport(390, 844, true)).toBe(PHONE_STAGE);
+    expect(stageForViewport(844, 390, false)).toBe(LANDSCAPE_STAGE);
+    expect(stageForViewport(960, 640, false)).toBeNull();
+    expect(stageForViewport(0, 0, false)).toBeNull();
   });
 });

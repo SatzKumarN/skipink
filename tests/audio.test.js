@@ -10,6 +10,8 @@ describe('playCue', () => {
     const quiet = new FakeAudioContext();
     quiet.currentTime = 0;
     expect(playCue(quiet, 'land')).toBe(true);
+    expect(playCue(quiet, 'streak', { freqMultiplier: 1.2 })).toBe(true);
+    expect(playCue(quiet, 'crown')).toBe(true);
     const timed = new FakeAudioContext();
     timed.currentTime = 2;
     timed.sampleRate = 1;

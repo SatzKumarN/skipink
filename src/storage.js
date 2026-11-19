@@ -2,10 +2,15 @@ import {
   CHARACTERS,
   CHARACTER_STORAGE_KEY,
   DEFAULT_CHARACTER,
+  DEFAULT_VIEW,
+  DRESS_STORAGE_KEY,
+  DRESSES,
   LEGACY_STORAGE_KEY,
   LEVEL_STORAGE_KEY,
   LEVELS,
   STORAGE_KEY,
+  VIEW_MODES,
+  VIEW_STORAGE_KEY,
 } from './config.js';
 
 function wholeCount(raw) {
@@ -91,5 +96,51 @@ export function writeCharacter(storage, character) {
     return safe;
   } catch {
     return DEFAULT_CHARACTER;
+  }
+}
+
+export function resolveView(id) {
+  const key = typeof id === 'string' ? id : '';
+  return VIEW_MODES.includes(key) ? key : DEFAULT_VIEW;
+}
+
+export function readView(storage) {
+  try {
+    return resolveView(storage.getItem(VIEW_STORAGE_KEY));
+  } catch {
+    return DEFAULT_VIEW;
+  }
+}
+
+export function writeView(storage, view) {
+  try {
+    const safe = resolveView(view);
+    storage.setItem(VIEW_STORAGE_KEY, safe);
+    return safe;
+  } catch {
+    return DEFAULT_VIEW;
+  }
+}
+
+export function readDress(storage) {
+  try {
+    const raw = Number(storage.getItem(DRESS_STORAGE_KEY));
+    if (!Number.isFinite(raw)) return 0;
+    return ((Math.floor(raw) % DRESSES.length) + DRESSES.length) % DRESSES.length;
+  } catch {
+    return 0;
+  }
+}
+
+export function writeDress(storage, dress) {
+  try {
+    const raw = Number(dress);
+    const safe = Number.isFinite(raw)
+      ? ((Math.floor(raw) % DRESSES.length) + DRESSES.length) % DRESSES.length
+      : 0;
+    storage.setItem(DRESS_STORAGE_KEY, String(safe));
+    return safe;
+  } catch {
+    return 0;
   }
 }
