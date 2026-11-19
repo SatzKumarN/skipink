@@ -6,18 +6,16 @@ import { angularVelocity, ropeProgress } from './core/rope.js';
 import { viewModel } from './core/present.js';
 import { bindControls } from './input/controls.js';
 import { camera, fitCanvas, readSafeInsets } from './render/fit.js';
-import { drawScene, setCustomCharacterImage } from './render/draw.js';
+import { drawScene } from './render/draw.js';
 import {
   readBest,
   readCharacter,
   readCleared,
-  readCustomCharacter,
   readDress,
   readView,
   writeBest,
   writeCharacter,
   writeCleared,
-  writeCustomCharacter,
   writeDress,
   writeView,
 } from './storage.js';
@@ -52,22 +50,14 @@ export function startGame(env) {
   let state = createState(bestWritten, clearedWritten, characterWritten);
   state.dress = dressWritten;
 
-  const savedCustom = readCustomCharacter(storage);
-  if (savedCustom && typeof Image !== 'undefined') {
-    const img = new Image();
-    img.onload = () => setCustomCharacterImage(img);
-    img.src = savedCustom;
-  }
-
   const canvas = env.canvas;
   const context = canvas.getContext('2d');
   if (!context) throw new Error('This browser cannot draw the sketchbook page.');
   const button = env.button;
   const toggle = env.toggle || null;
   const colorToggle = env.colorToggle || null;
+  const colorPalette = env.colorPalette || null;
   const randomToggle = env.randomToggle || null;
-  const uploadToggle = env.uploadToggle || null;
-  const fileInput = env.fileInput || null;
   const announcer = env.announcer || null;
   let lastMessage = '';
 
@@ -89,61 +79,69 @@ export function startGame(env) {
   }
   if (toggle) toggle.addEventListener('pointerdown', onToggle);
 
-  function onCycleColor(event) {
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
-    state.dress = (state.dress + 1) % DRESSES.length;
-    writeDress(storage, state.dress);
+  function syncColorPalette() {
+    if (!colorPalette) return;
+    const swatches = colorPalette.querySelectorAll?.('.color-swatch');
+    swatches?.forEach?.((swatch) => {
+      const idx = Number(swatch.dataset?.index ?? swatch.getAttribute?.('data-index'));
+      swatch.classList.toggle('active', idx === state.dress);
+    });
+  }
+  syncColorPalette();
+
+  function toggleColorPalette(open) {
+    if (!colorPalette) return;
+    const isOpen = open ?? colorPalette.classList.contains('hidden');
+    colorPalette.classList.toggle('hidden', !isOpen);
+    colorToggle?.setAttribute?.('aria-expanded', String(isOpen));
+  }
+
+  function selectDress(idx) {
+    state.dress = idx;
+    dressWritten = idx;
+    writeDress(storage, idx);
+    syncColorPalette();
     audio.play?.('jump', { freqMultiplier: 1.15 });
     if (announcer) announcer.textContent = `Outfit color: ${DRESS_NAMES[state.dress]}`;
   }
-  if (colorToggle) colorToggle.addEventListener('pointerdown', onCycleColor);
+
+  function onColorToggle(event) {
+    event?.preventDefault?.();
+    event?.stopPropagation?.();
+    toggleColorPalette();
+  }
+  if (colorToggle) colorToggle.addEventListener('pointerdown', onColorToggle);
+
+  function onPaletteClick(event) {
+    const target = event?.target?.closest?.('.color-swatch') ?? event?.target;
+    if (!target) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const idx = Number(target.dataset?.index ?? target.getAttribute?.('data-index'));
+    if (Number.isFinite(idx) && idx >= 0 && idx < DRESSES.length) {
+      selectDress(idx);
+      toggleColorPalette(false);
+    }
+  }
+  if (colorPalette) colorPalette.addEventListener('pointerdown', onPaletteClick);
+
+  function onCycleColor() {
+    selectDress((state.dress + 1) % DRESSES.length);
+  }
 
   function onRandom(event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
     const chars = ['bun', 'ballerina', 'scarecrow', 'pumpkin', 'samurai'];
-    if (readCustomCharacter(storage)) chars.push('custom');
     const randChar = chars[Math.floor(Math.random() * chars.length)];
     const randDress = Math.floor(Math.random() * DRESSES.length);
     state.character = randChar;
-    state.dress = randDress;
     writeCharacter(storage, randChar);
-    writeDress(storage, randDress);
+    selectDress(randDress);
     audio.play?.('jump', { freqMultiplier: 1.3 });
     if (announcer) announcer.textContent = `Randomized: ${randChar} (${DRESS_NAMES[randDress]})`;
   }
   if (randomToggle) randomToggle.addEventListener('pointerdown', onRandom);
-
-  function onUpload(event) {
-    event?.preventDefault?.();
-    event?.stopPropagation?.();
-    fileInput?.click?.();
-  }
-  if (uploadToggle) uploadToggle.addEventListener('pointerdown', onUpload);
-
-  function onFileChange(event) {
-    const file = event?.target?.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e?.target?.result;
-      if (typeof dataUrl === 'string') {
-        writeCustomCharacter(storage, dataUrl);
-        if (typeof Image !== 'undefined') {
-          const img = new Image();
-          img.onload = () => setCustomCharacterImage(img);
-          img.src = dataUrl;
-        }
-        state.character = 'custom';
-        writeCharacter(storage, 'custom');
-        audio.play?.('crown');
-        if (announcer) announcer.textContent = 'Custom character uploaded!';
-      }
-    };
-    reader.readAsDataURL(file);
-  }
-  if (fileInput) fileInput.addEventListener('change', onFileChange);
 
   let pressed = false;
   let pointer = null;
@@ -181,9 +179,6 @@ export function startGame(env) {
     onRandom() {
       onRandom();
     },
-    onUpload() {
-      onUpload();
-    },
   });
   let last = env.now();
   let live = true;
@@ -212,10 +207,7 @@ export function startGame(env) {
         const col = Math.min(2, Math.max(0, Math.floor((pointing.x - 25) / 30)));
         const row = Math.min(1, Math.max(0, Math.floor((pointing.y - 460) / 40)));
         const idx = row * 3 + col;
-        state.dress = idx;
-        writeDress(storage, idx);
-        audio.play?.('jump', { freqMultiplier: 1.15 });
-        if (announcer) announcer.textContent = `Outfit color: ${DRESS_NAMES[idx]}`;
+        selectDress(idx);
       }
     }
     const result = update(state, (now - last) / 1000, {
@@ -232,6 +224,7 @@ export function startGame(env) {
     steer = 0;
     back = false;
     state = result.state;
+    state.dress = dressWritten;
     result.events.forEach((event) => {
       let cue = SOUNDS[event];
       let options = undefined;
@@ -304,10 +297,9 @@ export function startGame(env) {
       live = false;
       unbind();
       if (toggle) toggle.removeEventListener('pointerdown', onToggle);
-      if (colorToggle) colorToggle.removeEventListener('pointerdown', onCycleColor);
+      if (colorToggle) colorToggle.removeEventListener('pointerdown', onColorToggle);
+      if (colorPalette) colorPalette.removeEventListener('pointerdown', onPaletteClick);
       if (randomToggle) randomToggle.removeEventListener('pointerdown', onRandom);
-      if (uploadToggle) uploadToggle.removeEventListener('pointerdown', onUpload);
-      if (fileInput) fileInput.removeEventListener('change', onFileChange);
     },
   };
 }

@@ -7,9 +7,8 @@ export function boot(globals = globalThis) {
   const button = doc.querySelector('#jump');
   const toggle = doc.querySelector('#view-toggle');
   const colorToggle = doc.querySelector('#color-toggle');
+  const colorPalette = doc.querySelector('#color-palette');
   const randomToggle = doc.querySelector('#random-toggle');
-  const uploadToggle = doc.querySelector('#upload-toggle');
-  const fileInput = doc.querySelector('#custom-char-file');
   const announcer = doc.querySelector('#announcer');
   if (!canvas || !button) throw new Error('Skipink is missing its page.');
   return startGame({
@@ -17,9 +16,8 @@ export function boot(globals = globalThis) {
     button,
     toggle,
     colorToggle,
+    colorPalette,
     randomToggle,
-    uploadToggle,
-    fileInput,
     announcer,
     window: globals,
     storage: globals.localStorage,

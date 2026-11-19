@@ -3,10 +3,8 @@ import { COLOR, DRESSES, MARKER } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
 import {
   drawScene,
-  getCustomCharacterImage,
   setBackArrowArt,
   setBrushArt,
-  setCustomCharacterImage,
 } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
 
@@ -730,37 +728,5 @@ describe('drawScene', () => {
       blot: 0.3,
     }));
     expect(crashCtx.calls.some((call) => call[0] === 'fillText' && call[1] === 'CRASH!!')).toBe(true);
-
-    const customPlaceholderCtx = mockContext();
-    setCustomCharacterImage(null);
-    expect(getCustomCharacterImage()).toBeNull();
-    drawScene(customPlaceholderCtx, 900, 640, scene({ character: 'custom' }));
-    expect(customPlaceholderCtx.calls.some((c) => c[0] === 'strokeRect')).toBe(true);
-
-    const customImg = {
-      complete: true,
-      naturalWidth: 80,
-      naturalHeight: 120,
-    };
-    setCustomCharacterImage(customImg);
-    expect(getCustomCharacterImage()).toBe(customImg);
-    const customImgCtx = mockContext();
-    drawScene(customImgCtx, 900, 640, scene({ character: 'custom' }));
-    expect(customImgCtx.calls.some((c) => c[0] === 'drawImage')).toBe(true);
-
-    const previewCustomCtx = mockContext();
-    drawScene(previewCustomCtx, 900, 640, scene({
-      phase: 'characters',
-      characters: [{ id: 'custom', selected: true, locked: false, x: 100, y: 100, w: 100, h: 100 }],
-    }));
-    expect(previewCustomCtx.calls.some((c) => c[0] === 'drawImage')).toBe(true);
-
-    setCustomCharacterImage(null);
-    const previewNoImgCtx = mockContext();
-    drawScene(previewNoImgCtx, 900, 640, scene({
-      phase: 'characters',
-      characters: [{ id: 'custom', selected: true, locked: false, x: 100, y: 100, w: 100, h: 100 }],
-    }));
-    expect(previewNoImgCtx.calls.some((c) => c[0] === 'fillText' && c[1] === 'CUSTOM')).toBe(true);
   });
 });

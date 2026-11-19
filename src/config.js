@@ -10,7 +10,6 @@ export const LEGACY_STORAGE_KEY = 'inkskip-best';
 export const LEVEL_STORAGE_KEY = 'skipink-cleared';
 export const CHARACTER_STORAGE_KEY = 'skipink-character';
 export const DRESS_STORAGE_KEY = 'skipink-dress';
-export const CUSTOM_CHAR_STORAGE_KEY = 'skipink-custom-character';
 export const VIEW_STORAGE_KEY = 'skipink-view';
 export const VIEW_MODES = ['classic', 'enhanced'];
 export const DEFAULT_VIEW = 'classic';

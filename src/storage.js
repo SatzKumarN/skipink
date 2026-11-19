@@ -1,7 +1,6 @@
 import {
   CHARACTERS,
   CHARACTER_STORAGE_KEY,
-  CUSTOM_CHAR_STORAGE_KEY,
   DEFAULT_CHARACTER,
   DEFAULT_VIEW,
   DRESS_STORAGE_KEY,
@@ -28,7 +27,6 @@ function clampCleared(raw) {
 
 export function resolveCharacter(id) {
   const key = typeof id === 'string' ? id : '';
-  if (key === 'custom') return 'custom';
   return CHARACTERS.some((choice) => choice.id === key) ? key : DEFAULT_CHARACTER;
 }
 
@@ -144,26 +142,5 @@ export function writeDress(storage, dress) {
     return safe;
   } catch {
     return 0;
-  }
-}
-
-export function readCustomCharacter(storage) {
-  try {
-    const item = storage.getItem(CUSTOM_CHAR_STORAGE_KEY);
-    return typeof item === 'string' && item.startsWith('data:image/') ? item : null;
-  } catch {
-    return null;
-  }
-}
-
-export function writeCustomCharacter(storage, dataUrl) {
-  try {
-    if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image/')) {
-      storage.setItem(CUSTOM_CHAR_STORAGE_KEY, dataUrl);
-      return dataUrl;
-    }
-    return null;
-  } catch {
-    return null;
   }
 }

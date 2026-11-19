@@ -387,34 +387,50 @@ describe('startGame', () => {
     expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
   });
 
-  it('handles color cycle, random choice, custom upload, and desk palette clicks', () => {
+  it('handles color picker popover, swatch selection, color cycle, random choice, and desk palette clicks', () => {
     const colorToggle = document.createElement('button');
+    const colorPalette = document.createElement('div');
+    colorPalette.className = 'color-palette hidden';
+    for (let i = 0; i < 6; i++) {
+      const swatch = document.createElement('button');
+      swatch.className = 'color-swatch';
+      swatch.dataset.index = String(i);
+      colorPalette.append(swatch);
+    }
     const randomToggle = document.createElement('button');
-    const uploadToggle = document.createElement('button');
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
     const announcer = document.createElement('div');
-    document.body.append(colorToggle, randomToggle, uploadToggle, fileInput, announcer);
+    document.body.append(colorToggle, colorPalette, randomToggle, announcer);
 
     const box = harness({
       colorToggle,
+      colorPalette,
       randomToggle,
-      uploadToggle,
-      fileInput,
       announcer,
     });
     const game = startGame(box.env);
 
-    // Color cycle
+    // Initial palette state
+    expect(colorPalette.classList.contains('hidden')).toBe(true);
+    expect(colorPalette.children[0].classList.contains('active')).toBe(true);
+
+    // Toggle color palette popover
     colorToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
-    expect(game.getState().dress).toBe(1);
-    expect(announcer.textContent).toContain('Outfit color:');
+    expect(colorPalette.classList.contains('hidden')).toBe(false);
+    expect(colorToggle.getAttribute('aria-expanded')).toBe('true');
 
-    // Key shortcut C
+    // Click swatch directly (index 3: Amber)
+    colorPalette.children[3].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    expect(game.getState().dress).toBe(3);
+    expect(announcer.textContent).toContain('Amber');
+    expect(colorPalette.classList.contains('hidden')).toBe(true);
+    expect(colorPalette.children[3].classList.contains('active')).toBe(true);
+
+    // Key shortcut C (cycles to index 4: Navy)
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', cancelable: true }));
-    expect(game.getState().dress).toBe(2);
+    expect(game.getState().dress).toBe(4);
+    expect(announcer.textContent).toContain('Navy');
 
-    // Random choice
+    // Random choice toggle
     randomToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
     expect(announcer.textContent).toContain('Randomized:');
 
@@ -422,47 +438,16 @@ describe('startGame', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', cancelable: true }));
     expect(announcer.textContent).toContain('Randomized:');
 
-    // Upload trigger
-    let clicked = false;
-    fileInput.click = () => { clicked = true; };
-    uploadToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
-    expect(clicked).toBe(true);
-
-    // Key shortcut U
-    clicked = false;
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyU', cancelable: true }));
-    expect(clicked).toBe(true);
-
-    // File change event with custom image
-    const file = new File(['dummy'], 'character.png', { type: 'image/png' });
-    Object.defineProperty(fileInput, 'files', {
-      value: [file],
-      writable: true,
-    });
-
-    // Mock FileReader
-    const origFileReader = globalThis.FileReader;
-    class MockFileReader {
-      readAsDataURL() {
-        this.onload?.({ target: { result: 'data:image/png;base64,mock' } });
-      }
-    }
-    globalThis.FileReader = MockFileReader;
-
-    fileInput.dispatchEvent(new Event('change'));
-    expect(game.getState().character).toBe('custom');
-    expect(announcer.textContent).toBe('Custom character uploaded!');
-    globalThis.FileReader = origFileReader;
-
-    // Click on desk color palette at (50, 480)
+    // Click on desk color palette at (0, 610) -> page (87, 462)
     box.queued.shift()(1000);
     box.button.dispatchEvent(new PointerEvent('pointerdown', {
       button: 0,
-      clientX: 50,
-      clientY: 480,
+      clientX: 0,
+      clientY: 610,
       cancelable: true,
     }));
     box.queued.shift()(1016);
+    expect(game.getState().dress).toBe(2);
 
     game.stop();
   });
