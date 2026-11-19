@@ -1,6 +1,6 @@
 import { COLOR, FIGURE, MARKER, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
-import { camera } from './fit.js';
+import { camera, phoneLayout, stageForViewport } from './fit.js';
 import {
   drawCoffeeRing,
   drawColorPalette,
@@ -39,8 +39,6 @@ function shakeOffset(vm) {
   const sy = Math.cos(seed + vm.blot * 113) * intensity;
   return { x: sx, y: sy };
 }
-
-const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 
 const BRUSH_ART = {
   back: { url: backSymbolUrl, image: null, tints: new Map() },
@@ -106,10 +104,6 @@ function tintBrushArt(id, image, tone, width, height) {
   } catch {
     return image;
   }
-}
-
-function phoneLayout(width, height) {
-  return width > 0 && width < 760 && height > width;
 }
 
 const PAPER = [
@@ -1839,7 +1833,8 @@ function deskColor(score, enhanced) {
 
 export function drawScene(ctx, width, height, vm, insets) {
   const phone = phoneLayout(width, height);
-  const cam = camera(width, height, phone ? PHONE_STAGE : null, insets);
+  const stage = stageForViewport(width, height, phone);
+  const cam = camera(width, height, stage, insets);
   const sheet = Number.isFinite(vm.sheet) ? vm.sheet : 0;
   const browsing = Boolean(vm.menu || vm.levels || vm.characters);
   const zoom = browsing

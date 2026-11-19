@@ -1,5 +1,20 @@
 import { PAGE } from '../config.js';
 
+export const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
+export const LANDSCAPE_STAGE = { x: 140, y: 60, w: 680, h: 500 };
+
+export function phoneLayout(width, height) {
+  return width > 0 && ((height > width && width < 850) || (width < 600 && height >= width * 0.9));
+}
+
+export function stageForViewport(width, height, phone = phoneLayout(width, height)) {
+  if (phone) return PHONE_STAGE;
+  if (height > 0 && height < 520 && width > height) {
+    return LANDSCAPE_STAGE;
+  }
+  return null;
+}
+
 export function fitCanvas(canvas, window) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const w = Math.max(1, window.innerWidth || 1);
@@ -35,7 +50,7 @@ export function readSafeInsets(window) {
 export function camera(width, height, frame, insets) {
   const view = frame || { x: 0, y: 0, w: PAGE.w, h: PAGE.h };
   const pad = insets || { top: 0, right: 0, bottom: 0, left: 0 };
-  const margin = 20;
+  const margin = (width < 360 || height < 360) ? 10 : 20;
   const w = Math.max(width - (pad.left || 0) - (pad.right || 0), margin * 2 + 1);
   const h = Math.max(height - (pad.top || 0) - (pad.bottom || 0), margin * 2 + 1);
   const s = Math.min((w - margin * 2) / view.w, (h - margin * 2) / view.h);

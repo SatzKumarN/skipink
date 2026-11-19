@@ -5,7 +5,13 @@ import { menuZoom, pageFromScreen, titleAnchor } from './core/menu.js';
 import { angularVelocity, ropeProgress } from './core/rope.js';
 import { viewModel } from './core/present.js';
 import { bindControls } from './input/controls.js';
-import { camera, fitCanvas, readSafeInsets } from './render/fit.js';
+import {
+  camera,
+  fitCanvas,
+  phoneLayout,
+  readSafeInsets,
+  stageForViewport,
+} from './render/fit.js';
 import { drawScene } from './render/draw.js';
 import {
   readBest,
@@ -21,12 +27,7 @@ import {
 } from './storage.js';
 
 const SOUNDS = { jump: 'jump', start: 'jump', skip: 'land', miss: 'blot', clear: 'land' };
-const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
 const PLAY_JUMP_KEYS = new Set(['ArrowUp', 'KeyW']);
-
-function phoneLayout(width, height) {
-  return width > 0 && width < 760 && height > width;
-}
 
 export function prefersReducedMotion(env) {
   if (typeof env.reducedMotion === 'boolean') return env.reducedMotion;
@@ -187,7 +188,7 @@ export function startGame(env) {
     if (!info || !Number.isFinite(info.x) || !Number.isFinite(info.y)) {
       return { x: null, y: null, phone };
     }
-    const stage = phone ? PHONE_STAGE : null;
+    const stage = stageForViewport(lastBox.w, lastBox.h, phone);
     const cam = camera(lastBox.w, lastBox.h, stage, lastInsets);
     const focus = titleAnchor(phone);
     const browsing = state.phase === 'menu'
