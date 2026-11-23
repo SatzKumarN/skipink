@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { CHARACTER_STORAGE_KEY, LEVEL_STORAGE_KEY, STORAGE_KEY } from '../src/config.js';
+import {
+  CHARACTER_STORAGE_KEY,
+  LEVEL_STORAGE_KEY,
+  STORAGE_KEY,
+  VIEW_STORAGE_KEY,
+} from '../src/config.js';
 import { createState, frame } from '../src/core/game.js';
 import { prefersReducedMotion, startGame } from '../src/runtime.js';
 import { mockContext } from './helpers/mockContext.js';
@@ -297,6 +302,153 @@ describe('startGame', () => {
     });
     box.queued.shift()(1048);
     expect(box.mem.get(CHARACTER_STORAGE_KEY)).toBe('bun');
+    game.stop();
+  });
+
+  it('toggles view mode between classic and enhanced', () => {
+    const toggle = document.createElement('button');
+    const announcer = document.createElement('div');
+    document.body.append(toggle, announcer);
+    let updateImpl = null;
+    const box = harness({
+      toggle,
+      announcer,
+      update: (state, dt, input) => {
+        if (updateImpl) return updateImpl(state, dt, input);
+        return frame(state, dt, input);
+      },
+    });
+    box.mem.set(VIEW_STORAGE_KEY, 'enhanced');
+    const game = startGame(box.env);
+    expect(toggle.textContent).toBe('✦');
+    expect(toggle.classList.contains('enhanced')).toBe(true);
+
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(toggle.textContent).toBe('✧');
+    expect(toggle.classList.contains('enhanced')).toBe(false);
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('classic');
+
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(toggle.textContent).toBe('✦');
+    expect(toggle.classList.contains('enhanced')).toBe(true);
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
+
+    box.queued.shift()(1000);
+    expect(box.paint).toHaveBeenCalled();
+    const lastVm = box.paint.mock.calls.at(-1)[3];
+    expect(lastVm.enhanced).toBe(true);
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'playing', score: 5 },
+      events: ['skip'],
+    });
+    box.queued.shift()(1016);
+    expect(box.audio.play).toHaveBeenCalledWith('streak');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'playing', score: 6 },
+      events: ['skip'],
+    });
+    box.queued.shift()(1032);
+    expect(box.audio.play).toHaveBeenCalledWith('land', { freqMultiplier: 1.12 });
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'cleared', score: 10 },
+      events: ['clear'],
+    });
+    box.queued.shift()(1048);
+    expect(box.audio.play).toHaveBeenCalledWith('crown');
+    expect(announcer.textContent).toBe('Level cleared. Score 10');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'over', score: 3 },
+      events: ['miss'],
+    });
+    box.queued.shift()(1064);
+    expect(announcer.textContent).toBe('Game over. Score 3');
+
+    updateImpl = () => ({
+      state: { ...createState(), phase: 'count', time: 1 },
+      events: [],
+    });
+    box.queued.shift()(1080);
+    expect(announcer.textContent).toBe('2');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
+    expect(toggle.textContent).toBe('✧');
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('classic');
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyV', cancelable: true }));
+    expect(toggle.textContent).toBe('✦');
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
+
+    game.stop();
+    toggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(box.mem.get(VIEW_STORAGE_KEY)).toBe('enhanced');
+  });
+
+  it('handles color picker popover, swatch selection, color cycle, random choice, and desk palette clicks', () => {
+    const colorToggle = document.createElement('button');
+    const colorPalette = document.createElement('div');
+    colorPalette.className = 'color-palette hidden';
+    for (let i = 0; i < 6; i++) {
+      const swatch = document.createElement('button');
+      swatch.className = 'color-swatch';
+      swatch.dataset.index = String(i);
+      colorPalette.append(swatch);
+    }
+    const randomToggle = document.createElement('button');
+    const announcer = document.createElement('div');
+    document.body.append(colorToggle, colorPalette, randomToggle, announcer);
+
+    const box = harness({
+      colorToggle,
+      colorPalette,
+      randomToggle,
+      announcer,
+    });
+    const game = startGame(box.env);
+
+    // Initial palette state
+    expect(colorPalette.classList.contains('hidden')).toBe(true);
+    expect(colorPalette.children[0].classList.contains('active')).toBe(true);
+
+    // Toggle color palette popover
+    colorToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(colorPalette.classList.contains('hidden')).toBe(false);
+    expect(colorToggle.getAttribute('aria-expanded')).toBe('true');
+
+    // Click swatch directly (index 3: Amber)
+    colorPalette.children[3].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+    expect(game.getState().dress).toBe(3);
+    expect(announcer.textContent).toContain('Amber');
+    expect(colorPalette.classList.contains('hidden')).toBe(true);
+    expect(colorPalette.children[3].classList.contains('active')).toBe(true);
+
+    // Key shortcut C (cycles to index 4: Navy)
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyC', cancelable: true }));
+    expect(game.getState().dress).toBe(4);
+    expect(announcer.textContent).toContain('Navy');
+
+    // Random choice toggle
+    randomToggle.dispatchEvent(new PointerEvent('pointerdown', { cancelable: true }));
+    expect(announcer.textContent).toContain('Randomized:');
+
+    // Key shortcut R
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyR', cancelable: true }));
+    expect(announcer.textContent).toContain('Randomized:');
+
+    // Click on desk color palette at (0, 610) -> page (87, 462)
+    box.queued.shift()(1000);
+    box.button.dispatchEvent(new PointerEvent('pointerdown', {
+      button: 0,
+      clientX: 0,
+      clientY: 610,
+      cancelable: true,
+    }));
+    box.queued.shift()(1016);
+    expect(game.getState().dress).toBe(2);
+
     game.stop();
   });
 });

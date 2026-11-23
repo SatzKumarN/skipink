@@ -11,6 +11,16 @@ export function mockContext() {
             return { width: String(text).length * 10 };
           };
         }
+        if (prop === 'createRadialGradient' || prop === 'createLinearGradient') {
+          return (...args) => {
+            calls.push([prop, ...args]);
+            return {
+              addColorStop(...cArgs) {
+                calls.push(['addColorStop', ...cArgs]);
+              },
+            };
+          };
+        }
         if (prop in target) return target[prop];
         if (typeof prop !== 'string') return undefined;
         return (...args) => {

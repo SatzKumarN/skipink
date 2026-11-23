@@ -11,11 +11,17 @@ const STEER_CODES = new Set([
 ]);
 const STEER_LEFT = new Set(['ArrowLeft', 'ArrowUp', 'KeyA', 'KeyW']);
 const BACK_CODES = new Set(['Escape', 'Backspace']);
+const TOGGLE_VIEW_CODES = new Set(['KeyV']);
+const CYCLE_COLOR_CODES = new Set(['KeyC']);
+const RANDOM_CODES = new Set(['KeyR']);
 
 export function bindControls(button, window, handlers) {
   const onPress = typeof handlers === 'function' ? handlers : handlers.onPress;
   const onSteer = typeof handlers === 'function' ? null : handlers.onSteer;
   const onBack = typeof handlers === 'function' ? null : handlers.onBack;
+  const onToggleView = typeof handlers === 'function' ? null : handlers.onToggleView;
+  const onCycleColor = typeof handlers === 'function' ? null : handlers.onCycleColor;
+  const onRandom = typeof handlers === 'function' ? null : handlers.onRandom;
 
   const pointerDown = (event) => {
     if (event.button != null && event.button !== 0) return;
@@ -31,6 +37,21 @@ export function bindControls(button, window, handlers) {
     if (BACK_CODES.has(event.code)) {
       event.preventDefault();
       onBack?.();
+      return;
+    }
+    if (onToggleView && TOGGLE_VIEW_CODES.has(event.code)) {
+      event.preventDefault();
+      onToggleView();
+      return;
+    }
+    if (onCycleColor && CYCLE_COLOR_CODES.has(event.code)) {
+      event.preventDefault();
+      onCycleColor();
+      return;
+    }
+    if (onRandom && RANDOM_CODES.has(event.code)) {
+      event.preventDefault();
+      onRandom();
       return;
     }
     if (onSteer && STEER_CODES.has(event.code)) {

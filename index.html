@@ -2,13 +2,32 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Skipink</title>
     <link rel="stylesheet" href="./src/style.css" />
   </head>
   <body>
     <canvas id="page" width="960" height="640" aria-hidden="true"></canvas>
     <button id="jump" class="jump" type="button">Start</button>
+    <div class="top-controls">
+      <button id="view-toggle" class="control-btn view-toggle" type="button" aria-label="Switch to enhanced view" title="Toggle Enhanced View (V)">✧</button>
+      <div class="color-picker-wrapper">
+        <button id="color-toggle" class="control-btn color-toggle" type="button" aria-label="Choose outfit color" aria-haspopup="true" aria-expanded="false" title="Choose Color (C)">🎨</button>
+        <div id="color-palette" class="color-palette hidden" role="menu" aria-label="Outfit Color Palette">
+          <button type="button" class="color-swatch" data-index="0" style="--swatch-color: #7d72d6;" title="Purple (Indigo Plum)" aria-label="Purple"></button>
+          <button type="button" class="color-swatch" data-index="1" style="--swatch-color: #c45d6a;" title="Crimson (Ruby Pink)" aria-label="Crimson"></button>
+          <button type="button" class="color-swatch" data-index="2" style="--swatch-color: #3d6e58;" title="Jade (Forest Green)" aria-label="Jade"></button>
+          <button type="button" class="color-swatch" data-index="3" style="--swatch-color: #c4842d;" title="Amber (Marigold Gold)" aria-label="Amber"></button>
+          <button type="button" class="color-swatch" data-index="4" style="--swatch-color: #3d5a80;" title="Navy (Slate Blue)" aria-label="Navy"></button>
+          <button type="button" class="color-swatch" data-index="5" style="--swatch-color: #8e4d7a;" title="Plum (Berry Wine)" aria-label="Plum"></button>
+        </div>
+      </div>
+      <button id="random-toggle" class="control-btn random-toggle" type="button" aria-label="Random character and color" title="Randomize (R)">🎲</button>
+    </div>
+    <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
     <script type="module" src="./src/main.js"></script>
   </body>
 </html>
