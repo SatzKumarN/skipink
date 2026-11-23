@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLOR, DRESSES, MARKER } from '../src/config.js';
+import { COLOR, DRESSES, FIGURE, MARKER } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
 import { drawScene, setBackArrowArt, setBrushArt } from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
@@ -50,6 +50,46 @@ function fontFor(ctx, text) {
     if (ctx.calls[i][0] === 'set' && ctx.calls[i][1] === 'font') return ctx.calls[i][2];
   }
   return '';
+}
+
+function ropeInk(ctx) {
+  let stroke = null;
+  let width = 0;
+  let path = [];
+  const points = [];
+  ctx.calls.forEach((call) => {
+    if (call[0] === 'set' && call[1] === 'strokeStyle') stroke = call[2];
+    else if (call[0] === 'set' && call[1] === 'lineWidth') width = call[2];
+    else if (call[0] === 'beginPath') path = [];
+    else if (call[0] === 'moveTo' || call[0] === 'lineTo') path.push({ x: call[1], y: call[2] });
+    else if (call[0] === 'stroke' && stroke === COLOR.cinnabar && width >= 3) {
+      path.forEach((point) => points.push({ ...point, width }));
+    }
+  });
+  return points;
+}
+
+function paintRope(character, angle) {
+  const ctx = mockContext();
+  drawScene(ctx, 960, 640, scene({
+    character,
+    angle,
+    pose: 'stand',
+    lift: 0,
+    pencil: false,
+    fleck: 0,
+    blot: 0,
+    showScore: false,
+    hint: '',
+    sheet: 0,
+  }));
+  return ropeInk(ctx);
+}
+
+function crestEdge(points) {
+  const head = FIGURE.x - 2;
+  const band = points.filter((point) => point.x >= head - 24 && point.x <= head + 24);
+  return Math.max(...band.map((point) => point.y + point.width / 2));
 }
 
 function scene(overrides = {}) {
@@ -634,5 +674,23 @@ describe('drawScene', () => {
     expect(otherSpot[1]).not.toBe(spot[1]);
     const early = paint(0.37, 0.12).calls.find((call) => call[0] === 'ellipse');
     expect(early[1]).not.toBe(marks[0][1]);
+  });
+
+  it('keeps the rope above the pumpkin head and the samurai crescent', () => {
+    const comingDown = Math.PI * 2.5 - Math.acos(-0.8);
+    const stem = FIGURE.ground - 100 - 48 - 1.3;
+    const crescent = FIGURE.ground - 100 - 46 - 1.3;
+    [TOP, comingDown].forEach((angle) => {
+      const pumpkin = crestEdge(paintRope('pumpkin', angle));
+      const samurai = crestEdge(paintRope('samurai', angle));
+      expect(stem - pumpkin).toBeGreaterThan(20);
+      expect(crescent - samurai).toBeGreaterThan(20);
+    });
+
+    expect(Math.min(...paintRope('bun', TOP).map((point) => point.y))).toBeCloseTo(339, 0);
+    expect(Math.min(...paintRope('ballerina', TOP).map((point) => point.y))).toBeCloseTo(339, 0);
+    expect(Math.min(...paintRope('scarecrow', TOP).map((point) => point.y))).toBeCloseTo(360, 0);
+    expect(Math.max(...paintRope('pumpkin', BOTTOM).map((point) => point.y))).toBeCloseTo(516, 0);
+    expect(Math.max(...paintRope('bun', BOTTOM).map((point) => point.y))).toBeCloseTo(516, 0);
   });
 });
