@@ -1,6 +1,27 @@
 import { COLOR, FIGURE, MARKER, PAGE, ROPE } from '../config.js';
 import { menuZoom } from '../core/menu.js';
-import { camera } from './fit.js';
+import { camera, phoneLayout, stageForViewport } from './fit.js';
+import {
+  drawCoffeeRing,
+  drawColorPalette,
+  drawDeskLighting,
+  drawDraftingPencil,
+  drawEraserShavings,
+  drawPaperClip,
+  drawWoodGrain,
+} from './desk.js';
+import {
+  drawEnhancedCostume,
+  drawEnhancedFigure,
+} from './character.js';
+import {
+  drawFocusLines,
+  drawImpactShockwave,
+  drawMangaAura,
+  drawMangaCrash,
+  drawMangaEmotes,
+  drawMangaSfx,
+} from './manga.js';
 import backSymbolUrl from '../assets/back-symbol.png';
 import charactersSymbolUrl from '../assets/characters-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
@@ -9,7 +30,15 @@ import levelsSymbolUrl from '../assets/levels-symbol.png';
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
 
-const PHONE_STAGE = { x: 330, y: 0, w: 340, h: 640 };
+function shakeOffset(vm) {
+  if (!vm.enhanced) return { x: 0, y: 0 };
+  if (vm.phase !== 'over' || vm.blot <= 0 || vm.blot >= 0.3) return { x: 0, y: 0 };
+  const intensity = (1 - vm.blot / 0.3) * 6;
+  const seed = vm.splash * 99991;
+  const sx = Math.sin(seed + vm.blot * 71) * intensity;
+  const sy = Math.cos(seed + vm.blot * 113) * intensity;
+  return { x: sx, y: sy };
+}
 
 const BRUSH_ART = {
   back: { url: backSymbolUrl, image: null, tints: new Map() },
@@ -75,10 +104,6 @@ function tintBrushArt(id, image, tone, width, height) {
   } catch {
     return image;
   }
-}
-
-function phoneLayout(width, height) {
-  return width > 0 && width < 760 && height > width;
 }
 
 const PAPER = [
@@ -165,7 +190,13 @@ function umbrellaHem(sx, srx, sry, t) {
 }
 
 function dressColors(vm) {
-  const dress = vm.dress || {};
+  if (vm?.enhanced && vm?.crowned && (vm?.phase === 'over' || vm?.phase === 'cleared')) {
+    return {
+      skirt: MARKER.gold,
+      deep: '#b8860b',
+    };
+  }
+  const dress = vm?.dress || {};
   return {
     skirt: dress.skirt || COLOR.skirt,
     deep: dress.deep || COLOR.skirtDeep,
@@ -243,14 +274,24 @@ function gripsLocal(spec, character = 'bun') {
   ];
 }
 
+function figureOrigin(vm) {
+  let y = FIGURE.ground - vm.lift * 46;
+  let lean = poseOf(vm).lean;
+  if (vm.enhanced && (vm.phase === 'menu' || vm.phase === 'count')) {
+    const breath = Math.sin((vm.clock || 0) * 2.5);
+    y += breath * 1.8;
+    lean += breath * 0.012;
+  }
+  return { x: FIGURE.x, y, lean };
+}
+
 function toWorld(vm, local) {
-  const spec = poseOf(vm);
-  const originY = FIGURE.ground - vm.lift * 46;
-  const c = Math.cos(spec.lean);
-  const s = Math.sin(spec.lean);
+  const origin = figureOrigin(vm);
+  const c = Math.cos(origin.lean);
+  const s = Math.sin(origin.lean);
   return {
-    x: FIGURE.x + local.x * c - local.y * s,
-    y: originY + local.x * s + local.y * c,
+    x: origin.x + local.x * c - local.y * s,
+    y: origin.y + local.x * s + local.y * c,
   };
 }
 
@@ -553,10 +594,10 @@ function drawBalletShoes(ctx, vm) {
   if (figureKind(vm) !== 'ballerina') return;
   const spec = poseOf(vm);
   const pose = balletPose(spec);
-  const y = FIGURE.ground - vm.lift * 46;
+  const origin = figureOrigin(vm);
   ctx.save();
-  ctx.translate(FIGURE.x, y);
-  ctx.rotate(spec.lean);
+  ctx.translate(origin.x, origin.y);
+  ctx.rotate(origin.lean);
   drawBalletFeet(ctx, pose, dressColors(vm).skirt);
   ctx.restore();
 }
@@ -986,13 +1027,16 @@ function figureKind(vm) {
 function drawFigure(ctx, vm) {
   const spec = poseOf(vm);
   const character = figureKind(vm);
-  const y = FIGURE.ground - vm.lift * 46;
+  const origin = figureOrigin(vm);
   ctx.save();
-  ctx.translate(FIGURE.x, y);
-  ctx.rotate(spec.lean);
+  ctx.translate(origin.x, origin.y);
+  ctx.rotate(origin.lean);
   const colors = dressColors(vm);
   if (COSTUME_IDS.has(character)) {
     drawCostume(ctx, spec, colors, character);
+    if (vm?.enhanced) {
+      drawEnhancedCostume(ctx, vm, costumeFrame(spec), character, colors);
+    }
     ctx.restore();
     return;
   }
@@ -1004,6 +1048,9 @@ function drawFigure(ctx, vm) {
   drawBody(ctx, spec, colors, character);
   if (character === 'ballerina') drawBallerinaHead(ctx, spec);
   else drawBunHead(ctx, sx, hy);
+  if (vm?.enhanced) {
+    drawEnhancedFigure(ctx, vm, spec, character, colors);
+  }
   drawHands(ctx, spec, character);
   ctx.restore();
 }
@@ -1161,11 +1208,36 @@ function ropePoint(angle, t, hands, rise = ROPE_ARC) {
   };
 }
 
+function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha, rise) {
+  const ghostAngle = vm.angle - angleOffset;
+  if ((Math.cos(ghostAngle) < -0.2) !== behind) return;
+  const steps = 16;
+  ctx.save();
+  ctx.globalAlpha = (ctx.globalAlpha || 1) * alpha;
+  for (let i = 0; i < steps; i += 1) {
+    const t0 = i / steps;
+    const t1 = (i + 1) / steps;
+    const p0 = ropePoint(ghostAngle, t0, hands, rise);
+    const p1 = ropePoint(ghostAngle, t1, hands, rise);
+    ctx.beginPath();
+    ctx.lineCap = 'round';
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.strokeStyle = COLOR.pencilLine;
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawRope(ctx, vm, dashed, behind) {
-  if ((Math.cos(vm.angle) < -0.2) !== behind) return;
   const spec = poseOf(vm);
   const hands = gripsWorld(vm);
   const rise = overheadRise(spec, figureKind(vm));
+  if (vm.enhanced && !dashed && vm.phase === 'playing' && vm.score > 2) {
+    drawRopeGhost(ctx, vm, behind, hands, 0.12, 0.35, rise);
+  }
+  if ((Math.cos(vm.angle) < -0.2) !== behind) return;
   const steps = 24;
   for (let i = 0; i < steps; i += 1) {
     const t0 = i / steps;
@@ -1183,7 +1255,7 @@ function drawRope(ctx, vm, dashed, behind) {
   }
 }
 
-function drawPage(ctx) {
+function drawPage(ctx, vm) {
   ctx.fillStyle = COLOR.sheet;
   poly(ctx, SHEET);
   ctx.fill();
@@ -1193,10 +1265,11 @@ function drawPage(ctx) {
   ctx.save();
   ctx.strokeStyle = COLOR.fiber;
   ctx.lineWidth = 1.4;
-  FIBERS.forEach((y) => {
+  FIBERS.forEach((y, idx) => {
     ctx.beginPath();
-    ctx.moveTo(120, y);
-    ctx.lineTo(790, y);
+    const wave = vm?.enhanced ? Math.sin((vm.clock || 0) * 1.5 + idx) * 1.2 : 0;
+    ctx.moveTo(120, y + wave);
+    ctx.lineTo(790, y + wave);
     ctx.stroke();
   });
   ctx.restore();
@@ -1206,9 +1279,10 @@ function drawPage(ctx) {
     ctx.arc(118, y, 5, 0, Math.PI * 2);
     ctx.fill();
   });
-  SPECKS.forEach(([x, y, r]) => {
+  SPECKS.forEach(([x, y, r], idx) => {
+    const pulse = vm?.enhanced ? Math.sin((vm.clock || 0) * 2 + idx) * 0.35 : 0;
     ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x, y, Math.max(0.5, r + pulse), 0, Math.PI * 2);
     ctx.fill();
   });
 }
@@ -1222,6 +1296,13 @@ function drawPencil(ctx, vm) {
 }
 
 function drawScore(ctx, vm) {
+  ctx.save();
+  if (vm.enhanced && vm.fleck > 0) {
+    const pop = 1 + vm.fleck * 0.15;
+    ctx.translate(820, 128);
+    ctx.scale(pop, pop);
+    ctx.translate(-820, -128);
+  }
   ctx.textAlign = 'right';
   ctx.font = `72px ${BRUSH}`;
   ctx.fillStyle = COLOR.cinnabar;
@@ -1247,6 +1328,12 @@ function drawScore(ctx, vm) {
       ctx.fillText('new', 748, 156);
     }
   }
+  if (vm.enhanced && vm.streak >= 5 && vm.phase === 'playing') {
+    ctx.font = `18px ${PEN}`;
+    ctx.fillStyle = COLOR.cinnabar;
+    ctx.fillText(`${vm.streak} streak!`, 820, vm.showBest ? 208 : 182);
+  }
+  ctx.restore();
 }
 
 function drawFleck(ctx, vm) {
@@ -1261,6 +1348,114 @@ function drawFleck(ctx, vm) {
     ctx.lineTo(FIGURE.x - 42 + i * 8, y + 10);
     ctx.stroke();
   });
+  ctx.restore();
+}
+
+function drawLandDust(ctx, vm) {
+  if (!vm.enhanced || !(vm.landDust > 0)) return;
+  const t = 1 - vm.landDust;
+  ctx.save();
+  ctx.globalAlpha = vm.landDust * 0.75;
+  ctx.fillStyle = COLOR.pencilLine;
+  const gy = FIGURE.ground + 14;
+  [-1, 1].forEach((dir) => {
+    [0.3, 0.6, 0.9].forEach((frac, i) => {
+      const dist = 14 + frac * 28 + t * 20;
+      const x = FIGURE.x + dir * dist;
+      const y = gy - 3 - (1 - frac) * 5 * (1 - t);
+      const r = (2 + i * 1.2) * (1 - t * 0.5);
+      ctx.beginPath();
+      ctx.arc(x, y, Math.max(0.5, r), 0, Math.PI * 2);
+      ctx.fill();
+    });
+  });
+  ctx.restore();
+}
+
+function drawInkBloom(ctx, vm) {
+  if (!vm.enhanced || !(vm.fleck > 0)) return;
+  ctx.save();
+  ctx.globalAlpha = vm.fleck * 0.45;
+  ctx.fillStyle = COLOR.ink;
+  const gy = FIGURE.ground + 14;
+  ctx.beginPath();
+  ctx.ellipse(FIGURE.x, gy, 8 * (1 - vm.fleck * 0.3), 3.5 * (1 - vm.fleck * 0.3), 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCharacterParticles(ctx, vm) {
+  if (!vm.enhanced || !(vm.fleck > 0) || vm.phase !== 'playing') return;
+  const character = figureKind(vm);
+  const t = 1 - vm.fleck;
+  const fy = FIGURE.ground - vm.lift * 46 - 20;
+  ctx.save();
+  ctx.globalAlpha = vm.fleck * 0.85;
+
+  if (character === 'ballerina') {
+    ctx.font = '16px serif';
+    ctx.fillStyle = vm.dress?.skirt || COLOR.skirt;
+    [-18, 18].forEach((ox, i) => {
+      const x = FIGURE.x + ox + (i === 0 ? -1 : 1) * t * 14;
+      const y = fy - 10 - t * 30 - i * 8;
+      ctx.fillText('♪', x, y);
+    });
+  } else if (character === 'scarecrow') {
+    ctx.strokeStyle = MARKER.straw;
+    ctx.lineWidth = 2;
+    [-16, 0, 16].forEach((ox, i) => {
+      const x = FIGURE.x + ox + Math.sin(t * 4 + i) * 12;
+      const y = fy - t * 24 - i * 6;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + 5, y - 6);
+      ctx.stroke();
+    });
+  } else if (character === 'pumpkin') {
+    [-14, 14].forEach((ox, i) => {
+      ctx.fillStyle = i === 0 ? MARKER.pumpkin : MARKER.leaf;
+      const x = FIGURE.x + ox + (i === 0 ? -1 : 1) * t * 16;
+      const y = fy - t * 20 - i * 5;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 4, 2.5, i * 0.8 + t, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  } else if (character === 'samurai') {
+    ctx.strokeStyle = MARKER.gold;
+    ctx.lineWidth = 1.8;
+    ctx.beginPath();
+    ctx.arc(FIGURE.x, fy, 26 + t * 10, -0.4, 0.4);
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = COLOR.ink;
+    [-12, 0, 12].forEach((ox, i) => {
+      const x = FIGURE.x + ox + (i - 1) * t * 12;
+      const y = fy - t * 26;
+      ctx.beginPath();
+      ctx.arc(x, y, 2.2 * (1 - t * 0.5), 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+  ctx.restore();
+}
+
+function drawCelebrationCrown(ctx, x, y) {
+  ctx.save();
+  ctx.fillStyle = MARKER.gold;
+  ctx.strokeStyle = COLOR.ink;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x - 16, y);
+  ctx.lineTo(x - 20, y - 14);
+  ctx.lineTo(x - 8, y - 8);
+  ctx.lineTo(x, y - 18);
+  ctx.lineTo(x + 8, y - 8);
+  ctx.lineTo(x + 20, y - 14);
+  ctx.lineTo(x + 16, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -1452,13 +1647,27 @@ function drawPlay(ctx, vm, sheet) {
     ctx.globalAlpha *= remain;
     drawRope(ctx, vm, false, true);
     drawShadow(ctx, vm.lift);
+    drawMangaAura(ctx, vm);
     drawFigure(ctx, vm);
     drawRope(ctx, vm, false, false);
     drawBalletShoes(ctx, vm);
+    drawCharacterParticles(ctx, vm);
+    drawMangaEmotes(ctx, vm);
     ctx.restore();
   }
-  if (vm.fleck > 0) drawFleck(ctx, vm);
-  if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) drawSplash(ctx, vm);
+  if (vm.fleck > 0) {
+    drawFleck(ctx, vm);
+    drawInkBloom(ctx, vm);
+    drawMangaSfx(ctx, vm);
+  }
+  if (vm.landDust > 0) {
+    drawLandDust(ctx, vm);
+    drawImpactShockwave(ctx, vm);
+  }
+  if (vm.blot > 0 && vm.phase !== 'cleared' && !vm.won) {
+    drawSplash(ctx, vm);
+    drawMangaCrash(ctx, vm);
+  }
   ctx.restore();
 }
 
@@ -1549,6 +1758,26 @@ function drawMovingScores(ctx, vm, title, sheet, phone) {
     ctx.fillStyle = COLOR.cinnabar;
     ctx.font = `22px ${PEN}`;
     ctx.fillText('new', title.x + (phone ? 64 : 90), title.y + (phone ? 78 : 156));
+    if (vm.enhanced) {
+      drawCelebrationCrown(ctx, x, scoreY - (phone ? 40 : 54));
+    }
+  }
+  if (vm.enhanced && vm.goal && ease > 0.8) {
+    ctx.save();
+    ctx.globalAlpha = (ease - 0.8) / 0.2;
+    const barW = phone ? 120 : 160;
+    const barH = 7;
+    const barX = title.x - barW / 2;
+    const barY = title.y + (phone ? 136 : 194);
+    ctx.strokeStyle = COLOR.pencilLine;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(barX, barY, barW, barH);
+    const progressW = Math.min(barW, (vm.score / vm.goal) * barW);
+    if (progressW > 0) {
+      ctx.fillStyle = vm.phase === 'cleared' ? COLOR.cinnabar : COLOR.pencil;
+      ctx.fillRect(barX + 1.5, barY + 1.5, Math.max(0, progressW - 3), barH - 3);
+    }
+    ctx.restore();
   }
   ctx.restore();
 }
@@ -1577,7 +1806,7 @@ function paintBrushSymbol(ctx, hit, selected, locked, id, scale = 0.94) {
   );
 }
 
-function drawChoice(ctx, hit, phone) {
+function drawChoice(ctx, hit, phone, vm) {
   const selected = Boolean(hit.selected);
   const locked = Boolean(hit.locked);
   const cx = hit.x + hit.w / 2;
@@ -1587,6 +1816,14 @@ function drawChoice(ctx, hit, phone) {
   const back = hit.id === 'back';
   ctx.save();
   ctx.globalAlpha = locked ? 0.4 : 1;
+  if (vm?.enhanced && selected && !back) {
+    ctx.save();
+    ctx.strokeStyle = COLOR.cinnabar;
+    ctx.lineWidth = 1.6;
+    ctx.globalAlpha = 0.55;
+    ctx.strokeRect(hit.x - 2, hit.y - 2, hit.w + 4, hit.h + 4);
+    ctx.restore();
+  }
   if (back) {
     paintBrushSymbol(ctx, hit, selected, locked, 'back');
   } else if (mode) {
@@ -1608,13 +1845,22 @@ function drawChoice(ctx, hit, phone) {
 
 function drawMenus(ctx, vm, phone) {
   const items = vm.menu || vm.levels || vm.characters;
-  if (items && items.length) items.forEach((hit) => drawChoice(ctx, hit, phone));
-  if (vm.exit) drawChoice(ctx, vm.exit, phone);
+  if (items && items.length) items.forEach((hit) => drawChoice(ctx, hit, phone, vm));
+  if (vm.exit) drawChoice(ctx, vm.exit, phone, vm);
+}
+
+function deskColor(score, enhanced) {
+  if (!enhanced || !Number.isFinite(score) || score <= 0) return COLOR.desk;
+  if (score < 10) return COLOR.desk;
+  if (score < 25) return '#d8c2a3';
+  if (score < 50) return '#d9be9b';
+  return '#dbba92';
 }
 
 export function drawScene(ctx, width, height, vm, insets) {
   const phone = phoneLayout(width, height);
-  const cam = camera(width, height, phone ? PHONE_STAGE : null, insets);
+  const stage = stageForViewport(width, height, phone);
+  const cam = camera(width, height, stage, insets);
   const sheet = Number.isFinite(vm.sheet) ? vm.sheet : 0;
   const browsing = Boolean(vm.menu || vm.levels || vm.characters);
   const zoom = browsing
@@ -1625,16 +1871,31 @@ export function drawScene(ctx, width, height, vm, insets) {
   const focusY = PAGE.h / 2 + (spot.y - PAGE.h / 2) * sheet;
   ctx.save();
   ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = COLOR.desk;
+  const bgColor = deskColor(vm.score, vm.enhanced);
+  ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, width, height);
-  ctx.translate(cam.ox, cam.oy);
+  if (vm.enhanced) {
+    drawWoodGrain(ctx, width, height);
+  }
+  const shake = shakeOffset(vm);
+  ctx.translate(cam.ox + shake.x, cam.oy + shake.y);
   ctx.scale(cam.s, cam.s);
   ctx.translate(PAGE.w / 2, PAGE.h / 2);
   ctx.scale(zoom, zoom);
   ctx.translate(-focusX, -focusY);
-  ctx.fillStyle = COLOR.desk;
+  ctx.fillStyle = bgColor;
   ctx.fillRect(-40, -40, PAGE.w + 80, PAGE.h + 80);
-  drawPage(ctx);
+  if (vm.enhanced) {
+    drawCoffeeRing(ctx, 840, 110, 40);
+    drawDraftingPencil(ctx, 770, 520, 0.45);
+    drawEraserShavings(ctx, 740, 535);
+    drawColorPalette(ctx, 40, 480);
+  }
+  drawPage(ctx, vm);
+  if (vm.enhanced) {
+    drawPaperClip(ctx, 115, 30);
+    drawFocusLines(ctx, PAGE.w, PAGE.h, vm);
+  }
   drawPlay(ctx, vm, sheet);
   if (vm.count) drawCountdown(ctx, vm.count, phone);
   const title = drawTitle(ctx, sheet, phone);
@@ -1659,4 +1920,7 @@ export function drawScene(ctx, width, height, vm, insets) {
     ctx.restore();
   }
   ctx.restore();
+  if (vm.enhanced) {
+    drawDeskLighting(ctx, width, height);
+  }
 }

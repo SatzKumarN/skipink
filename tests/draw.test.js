@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { COLOR, DRESSES, FIGURE, MARKER } from '../src/config.js';
 import { BOTTOM, TOP } from '../src/core/rope.js';
-import { drawScene, setBackArrowArt, setBrushArt } from '../src/render/draw.js';
+import {
+  drawScene,
+  setBackArrowArt,
+  setBrushArt,
+} from '../src/render/draw.js';
 import { mockContext, styleWas } from './helpers/mockContext.js';
 
 const BACK_SYMBOL = {
@@ -692,5 +696,95 @@ describe('drawScene', () => {
     expect(Math.min(...paintRope('scarecrow', TOP).map((point) => point.y))).toBeCloseTo(360, 0);
     expect(Math.max(...paintRope('pumpkin', BOTTOM).map((point) => point.y))).toBeCloseTo(516, 0);
     expect(Math.max(...paintRope('bun', BOTTOM).map((point) => point.y))).toBeCloseTo(516, 0);
+  });
+
+  it('applies enhanced visuals like score pop and miss shake when enabled', () => {
+    const popCtx = mockContext();
+    drawScene(popCtx, 900, 640, scene({ enhanced: true, fleck: 0.8 }));
+    expect(popCtx.calls.some((call) => call[0] === 'scale' && call[1] > 1)).toBe(true);
+
+    const shakeCtx = mockContext();
+    drawScene(shakeCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      blot: 0.15,
+      splash: 0.42,
+    }));
+    expect(shakeCtx.calls.some((call) => call[0] === 'translate')).toBe(true);
+
+    const dustCtx = mockContext();
+    drawScene(dustCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'playing',
+      landDust: 0.8,
+      fleck: 0.7,
+      score: 5,
+    }));
+    expect(dustCtx.calls.some((call) => call[0] === 'arc')).toBe(true);
+    expect(dustCtx.calls.some((call) => call[0] === 'ellipse')).toBe(true);
+
+    const breatheCtx = mockContext();
+    drawScene(breatheCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'menu',
+      clock: 1.2,
+      score: 30,
+      character: 'ballerina',
+      menu: [{ id: 'infinity', selected: true, x: 100, y: 100, w: 100, h: 100 }],
+    }));
+    expect(breatheCtx.calls.some((call) => call[0] === 'rotate')).toBe(true);
+    expect(breatheCtx.calls.some((call) => call[0] === 'strokeRect')).toBe(true);
+    expect(breatheCtx.calls.some((call) => call[0] === 'bezierCurveTo')).toBe(true);
+
+    const highCtx = mockContext();
+    drawScene(highCtx, 900, 640, scene({ enhanced: true, score: 60 }));
+    expect(highCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === '#dbba92')).toBe(true);
+
+    const chars = ['ballerina', 'scarecrow', 'pumpkin', 'samurai', 'bun'];
+    chars.forEach((c) => {
+      const cCtx = mockContext();
+      drawScene(cCtx, 900, 640, scene({
+        enhanced: true,
+        phase: 'playing',
+        fleck: 0.6,
+        character: c,
+        streak: 8,
+      }));
+      expect(cCtx.calls.some((call) => call[0] === 'fillText' && call[1] === '8 streak!')).toBe(true);
+    });
+
+    const crownCtx = mockContext();
+    drawScene(crownCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      crowned: true,
+      blot: 1,
+      sheet: 1,
+      score: 8,
+      goal: 10,
+    }));
+    expect(crownCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === MARKER.gold)).toBe(true);
+    expect(crownCtx.calls.some((call) => call[0] === 'strokeRect')).toBe(true);
+
+    const mangaCtx = mockContext();
+    drawScene(mangaCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'playing',
+      streak: 16,
+      score: 16,
+      fleck: 0.8,
+      landDust: 0.5,
+      mood: 'snap',
+      clock: 1.5,
+    }));
+    expect(mangaCtx.calls.some((call) => call[0] === 'fillText' && call[1] === 'FEVER!!')).toBe(true);
+
+    const crashCtx = mockContext();
+    drawScene(crashCtx, 900, 640, scene({
+      enhanced: true,
+      phase: 'over',
+      blot: 0.3,
+    }));
+    expect(crashCtx.calls.some((call) => call[0] === 'fillText' && call[1] === 'CRASH!!')).toBe(true);
   });
 });

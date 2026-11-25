@@ -19,9 +19,9 @@ export function createSynth(window) {
 
   return {
     unlock,
-    play(name) {
+    play(name, options) {
       if (!ctx) return false;
-      return playCue(ctx, name);
+      return playCue(ctx, name, options);
     },
     hum(level) {
       if (!ctx) return 0;

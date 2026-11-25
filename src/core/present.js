@@ -153,6 +153,7 @@ function charactersView(state, phone) {
 export function viewModel(state, options = {}) {
   const clock = Number.isFinite(options.clock) ? options.clock : state.time;
   const phone = Boolean(options.phone);
+  const enhanced = Boolean(options.enhanced);
   const blot = blotAmount(state, Boolean(options.reducedMotion));
   const count = countDigit(state);
   const progress = state.phase === 'playing' || state.phase === 'over' || state.phase === 'count'
@@ -162,6 +163,9 @@ export function viewModel(state, options = {}) {
 
   const fleck = state.skippedAt != null && state.phase === 'playing'
     ? clamp01(1 - (state.time - state.skippedAt) / 0.12)
+    : 0;
+  const landDust = state.landedAt != null && state.phase === 'playing' && state.time >= state.landedAt
+    ? clamp01(1 - (state.time - state.landedAt) / 0.15)
     : 0;
   const sheet = sheetAmount(state, Boolean(options.reducedMotion));
   const recap = state.phase === 'playing' && state.recap && sheet > 0
@@ -180,6 +184,8 @@ export function viewModel(state, options = {}) {
   return {
     phase: state.phase,
     mode: state.mode,
+    enhanced,
+    clock,
     level: state.level,
     goal: state.goal,
     unlocked: state.unlocked,
@@ -188,6 +194,7 @@ export function viewModel(state, options = {}) {
     character: resolveCharacter(state.character),
     won: state.phase === 'cleared',
     score: state.score,
+    streak: state.phase === 'playing' ? state.score : 0,
     best: state.best,
     showBest: state.best > 0 && state.mode !== 'level',
     crowned: Boolean(state.crowned) && state.score > 0,
@@ -211,6 +218,7 @@ export function viewModel(state, options = {}) {
     count,
     showScore: state.phase === 'playing' || state.phase === 'over' || state.phase === 'cleared',
     fleck,
+    landDust,
     label: buttonLabel(state.phase, blot, count),
     waiting: ((state.phase === 'over' || state.phase === 'cleared') && blot < 1)
       || state.phase === 'count',

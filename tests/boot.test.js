@@ -18,7 +18,7 @@ describe('boot', () => {
   });
 
   it('starts a game on the real page objects', () => {
-    document.body.innerHTML = '<canvas id="page"></canvas><button id="jump"></button>';
+    document.body.innerHTML = '<canvas id="page"></canvas><button id="jump"></button><button id="view-toggle"></button><div id="announcer"></div>';
     const canvas = document.querySelector('#page');
     canvas.getContext = () => mockContext();
     const queued = [];
