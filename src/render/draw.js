@@ -1171,12 +1171,36 @@ function drawGround(ctx) {
   });
 }
 
-function ropePoint(angle, t, hands) {
+const ROPE_ARC = 88;
+const ROPE_HALF = 3.3;
+const OUTLINE = 1.3;
+const HAT_REACH = 12 + OUTLINE;
+
+// The scarecrow hat stays clear of the default arc until the rope has swung
+// well down. The pumpkin stem and the samurai crescent stand higher, so their
+// arc grows by the same ratio and keeps that clearance.
+function ornamentReach(character) {
+  if (character === 'pumpkin') return 48 + OUTLINE;
+  if (character === 'samurai') return 46 + OUTLINE;
+  return 0;
+}
+
+function overheadRise(spec, character) {
+  const reach = ornamentReach(character);
+  if (!reach) return ROPE_ARC;
+  const [, hy] = spec.head;
+  const hands = gripsLocal(spec, character);
+  const drop = (hands[0].y + hands[1].y) / 2 - hy;
+  const hat = drop + HAT_REACH + ROPE_HALF;
+  return ROPE_ARC * ((drop + reach + ROPE_HALF) / hat);
+}
+
+function ropePoint(angle, t, hands, rise = ROPE_ARC) {
   const [left, right] = hands;
   const midY = (left.y + right.y) / 2;
   const lift = Math.sin(angle);
   const amount = (lift < 0 ? -1 : 1) * (0.45 + Math.abs(lift) * 0.55);
-  const crest = amount < 0 ? midY - 88 : FIGURE.ground + 8;
+  const crest = amount < 0 ? midY - rise : FIGURE.ground + 8;
   const yCrest = midY + (crest - midY) * Math.abs(amount);
   return {
     x: left.x + (right.x - left.x) * t - Math.sin(t * Math.PI * 2) * ROPE.wide,
@@ -1184,7 +1208,7 @@ function ropePoint(angle, t, hands) {
   };
 }
 
-function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha) {
+function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha, rise) {
   const ghostAngle = vm.angle - angleOffset;
   if ((Math.cos(ghostAngle) < -0.2) !== behind) return;
   const steps = 16;
@@ -1193,8 +1217,8 @@ function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha) {
   for (let i = 0; i < steps; i += 1) {
     const t0 = i / steps;
     const t1 = (i + 1) / steps;
-    const p0 = ropePoint(ghostAngle, t0, hands);
-    const p1 = ropePoint(ghostAngle, t1, hands);
+    const p0 = ropePoint(ghostAngle, t0, hands, rise);
+    const p1 = ropePoint(ghostAngle, t1, hands, rise);
     ctx.beginPath();
     ctx.lineCap = 'round';
     ctx.moveTo(p0.x, p0.y);
@@ -1207,9 +1231,11 @@ function drawRopeGhost(ctx, vm, behind, hands, angleOffset, alpha) {
 }
 
 function drawRope(ctx, vm, dashed, behind) {
+  const spec = poseOf(vm);
   const hands = gripsWorld(vm);
+  const rise = overheadRise(spec, figureKind(vm));
   if (vm.enhanced && !dashed && vm.phase === 'playing' && vm.score > 2) {
-    drawRopeGhost(ctx, vm, behind, hands, 0.12, 0.35);
+    drawRopeGhost(ctx, vm, behind, hands, 0.12, 0.35, rise);
   }
   if ((Math.cos(vm.angle) < -0.2) !== behind) return;
   const steps = 24;
@@ -1217,8 +1243,8 @@ function drawRope(ctx, vm, dashed, behind) {
     const t0 = i / steps;
     const t1 = (i + 1) / steps;
     const mid = (t0 + t1) / 2;
-    const p0 = ropePoint(vm.angle, t0, hands);
-    const p1 = ropePoint(vm.angle, t1, hands);
+    const p0 = ropePoint(vm.angle, t0, hands, rise);
+    const p1 = ropePoint(vm.angle, t1, hands, rise);
     ctx.beginPath();
     ctx.lineCap = 'round';
     ctx.moveTo(p0.x, p0.y);
