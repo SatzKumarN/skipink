@@ -365,6 +365,47 @@ export function drawScarecrowFeatures(ctx, vm, frame) {
   ctx.restore();
 }
 
+export function drawOctopusFeatures(ctx, vm, frame) {
+  const clock = vm?.clock || 0;
+  const streak = vm?.streak || 0;
+  const lift = vm?.lift || 0;
+  const { hx, hy } = frame;
+
+  ctx.save();
+
+  // Subtle tentacle tip sway (enhanced motion)
+  const wave = Math.sin(clock * 6) * (2.5 + lift * 3);
+  ctx.strokeStyle = MARKER.octopus;
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  [-14, 14].forEach((ox, i) => {
+    const sign = i === 0 ? -1 : 1;
+    const baseY = hy + 14;
+    ctx.beginPath();
+    ctx.moveTo(hx + ox, baseY);
+    ctx.quadraticCurveTo(
+      hx + ox + sign * (4 + wave),
+      baseY + 10,
+      hx + ox + sign * (8 + wave * 0.6),
+      baseY + 18,
+    );
+    ctx.stroke();
+  });
+
+  // Gold trim glint on high streak
+  if (streak >= 4) {
+    const glint = Math.sin(clock * 7) * 0.5 + 0.5;
+    if (glint > 0.4) {
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(hx, hy + 28, 1.4 * glint, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
 export function drawEnhancedFigure(ctx, vm, spec, character, colors) {
   if (!vm?.enhanced) return;
   const [sx] = spec.skirt;
@@ -384,5 +425,7 @@ export function drawEnhancedCostume(ctx, vm, frame, character, colors) {
     drawSamuraiFeatures(ctx, vm, frame);
   } else if (character === 'scarecrow') {
     drawScarecrowFeatures(ctx, vm, frame);
+  } else if (character === 'octopus') {
+    drawOctopusFeatures(ctx, vm, frame);
   }
 }

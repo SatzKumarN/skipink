@@ -107,6 +107,7 @@ describe('character choice', () => {
     expect(resolveCharacter('scarecrow')).toBe('scarecrow');
     expect(resolveCharacter('pumpkin')).toBe('pumpkin');
     expect(resolveCharacter('samurai')).toBe('samurai');
+    expect(resolveCharacter('octopus')).toBe('octopus');
     expect(resolveCharacter('nope')).toBe(DEFAULT_CHARACTER);
     expect(resolveCharacter(null)).toBe(DEFAULT_CHARACTER);
     const store = memory([[CHARACTER_STORAGE_KEY, 'ballerina']]);

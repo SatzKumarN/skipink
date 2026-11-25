@@ -602,7 +602,7 @@ function drawBalletShoes(ctx, vm) {
   ctx.restore();
 }
 
-const COSTUME_IDS = new Set(['scarecrow', 'pumpkin', 'samurai']);
+const COSTUME_IDS = new Set(['scarecrow', 'pumpkin', 'samurai', 'octopus']);
 
 function costumeFrame(spec) {
   const [hx, hy] = spec.head;
@@ -1013,9 +1013,120 @@ function drawSamurai(ctx, spec, colors, tone) {
   ctx.fill();
 }
 
+function drawOctopus(ctx, spec, colors, tone) {
+  const frame = costumeFrame(spec);
+  const { hx, hy, neck, hem } = frame;
+  const skin = tone || MARKER.octopus;
+  const robe = tone || colors.skirt || MARKER.octopusRobe;
+  const trim = tone || MARKER.gold;
+  const line = tone || COLOR.ink;
+  const grips = gripsLocal(spec, 'octopus');
+  const waist = neck + (hem - neck) * 0.48;
+  const flare = 36;
+
+  drawStickLegs(ctx, spec, hem, tone);
+
+  // Purple triangular robe (apex tucked under tentacles)
+  ctx.beginPath();
+  ctx.moveTo(hx, neck + 2);
+  ctx.lineTo(hx + flare, hem + 4);
+  ctx.lineTo(hx - flare, hem + 4);
+  ctx.closePath();
+  fillOutlined(ctx, robe, tone);
+
+  // Gold vertical center stripe
+  ctx.beginPath();
+  ctx.moveTo(hx - 2.2, neck + 10);
+  ctx.lineTo(hx + 2.2, neck + 10);
+  ctx.lineTo(hx + 2.2, waist);
+  ctx.lineTo(hx - 2.2, waist);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+
+  // Gold waist band
+  const bandHalf = flare * 0.72;
+  ctx.beginPath();
+  ctx.moveTo(hx - bandHalf, waist - 3);
+  ctx.lineTo(hx + bandHalf, waist - 3);
+  ctx.lineTo(hx + bandHalf + 1, waist + 5);
+  ctx.lineTo(hx - bandHalf - 1, waist + 5);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+
+  // Gold lower trim flaps (wide diagonal panels from hem center up to waist corners)
+  ctx.beginPath();
+  ctx.moveTo(hx - 5, hem + 2);
+  ctx.lineTo(hx - bandHalf + 1, waist + 5);
+  ctx.lineTo(hx - bandHalf * 0.45, waist + 5);
+  ctx.lineTo(hx - 1.5, hem + 2);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+  ctx.beginPath();
+  ctx.moveTo(hx + 5, hem + 2);
+  ctx.lineTo(hx + bandHalf - 1, waist + 5);
+  ctx.lineTo(hx + bandHalf * 0.45, waist + 5);
+  ctx.lineTo(hx + 1.5, hem + 2);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+
+  // Stick arms angling down ~30° with black circle hands
+  ink(ctx, 4, (pen) => {
+    grips.forEach((grip, index) => {
+      const sign = index === 0 ? -1 : 1;
+      pen.moveTo(hx + sign * 10, neck + 14);
+      pen.lineTo(grip.x, grip.y);
+    });
+  }, line);
+  drawPalms(ctx, grips, tone);
+
+  // Bulbous reddish-orange octopus head
+  const headR = 18;
+  const headY = hy + 2;
+  ctx.beginPath();
+  ctx.ellipse(hx, headY, headR * 0.92, headR, 0, 0, Math.PI * 2);
+  fillOutlined(ctx, skin, tone);
+
+  // Six short tentacle "beard" — outer pair tips curl out/up; inner four hang down
+  const tentBaseY = headY + headR * 0.58;
+  const tentacles = [
+    { x: -12, curl: -1, drop: 15, tipUp: 4 },
+    { x: -7, curl: 0, drop: 19, tipUp: 0 },
+    { x: -2.4, curl: 0, drop: 21, tipUp: 0 },
+    { x: 2.4, curl: 0, drop: 21, tipUp: 0 },
+    { x: 7, curl: 0, drop: 19, tipUp: 0 },
+    { x: 12, curl: 1, drop: 15, tipUp: 4 },
+  ];
+  tentacles.forEach((t) => {
+    const tipX = hx + t.x + t.curl * 5;
+    const tipY = tentBaseY + t.drop - t.tipUp;
+    const midX = hx + t.x + t.curl * 1.5;
+    const midY = tentBaseY + t.drop * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(hx + t.x - 3.2, tentBaseY);
+    ctx.quadraticCurveTo(midX - 3.4, midY, tipX - 2.4, tipY);
+    ctx.quadraticCurveTo(tipX + t.curl * 1.5, tipY + 2.8, tipX + 2.4, tipY);
+    ctx.quadraticCurveTo(midX + 3.4, midY, hx + t.x + 3.2, tentBaseY);
+    ctx.closePath();
+    fillOutlined(ctx, skin, tone);
+  });
+
+  // Large slanted villainous black eyes (almond, angled down toward center)
+  ctx.fillStyle = line;
+  [-1, 1].forEach((sign) => {
+    ctx.beginPath();
+    ctx.moveTo(hx + sign * 3.2, headY + 1.5);
+    ctx.quadraticCurveTo(hx + sign * 5.5, headY - 5.5, hx + sign * 11.5, headY - 3.5);
+    ctx.quadraticCurveTo(hx + sign * 12.5, headY + 1.2, hx + sign * 7.5, headY + 3.2);
+    ctx.quadraticCurveTo(hx + sign * 4.5, headY + 3.5, hx + sign * 3.2, headY + 1.5);
+    ctx.closePath();
+    ctx.fill();
+  });
+}
+
 function drawCostume(ctx, spec, colors, character, tone) {
   if (character === 'pumpkin') drawPumpkin(ctx, spec, colors, tone);
   else if (character === 'samurai') drawSamurai(ctx, spec, colors, tone);
+  else if (character === 'octopus') drawOctopus(ctx, spec, colors, tone);
   else drawScarecrow(ctx, spec, colors, tone);
 }
 function figureKind(vm) {
@@ -1426,6 +1537,15 @@ function drawCharacterParticles(ctx, vm) {
     ctx.beginPath();
     ctx.arc(FIGURE.x, fy, 26 + t * 10, -0.4, 0.4);
     ctx.stroke();
+  } else if (character === 'octopus') {
+    [-16, 0, 16].forEach((ox, i) => {
+      ctx.fillStyle = i === 1 ? MARKER.octopus : MARKER.octopusRobe;
+      const x = FIGURE.x + ox + Math.sin(t * 5 + i) * 10;
+      const y = fy - t * 22 - i * 4;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 3.5, 2.4, i * 0.6 + t, 0, Math.PI * 2);
+      ctx.fill();
+    });
   } else {
     ctx.fillStyle = COLOR.ink;
     [-12, 0, 12].forEach((ox, i) => {

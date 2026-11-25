@@ -133,7 +133,7 @@ export function startGame(env) {
   function onRandom(event) {
     event?.preventDefault?.();
     event?.stopPropagation?.();
-    const chars = ['bun', 'ballerina', 'scarecrow', 'pumpkin', 'samurai'];
+    const chars = ['bun', 'ballerina', 'scarecrow', 'pumpkin', 'samurai', 'octopus'];
     const randChar = chars[Math.floor(Math.random() * chars.length)];
     const randDress = Math.floor(Math.random() * DRESSES.length);
     state.character = randChar;

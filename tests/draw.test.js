@@ -315,21 +315,25 @@ describe('drawScene', () => {
       scarecrow: [MARKER.straw, MARKER.band],
       pumpkin: [MARKER.pumpkin, MARKER.leaf, MARKER.leafDeep],
       samurai: [MARKER.helm, MARKER.helmRed, MARKER.gold],
+      octopus: [MARKER.octopus, MARKER.gold],
     };
-    ['scarecrow', 'pumpkin', 'samurai'].forEach((character, index) => {
+    ['scarecrow', 'pumpkin', 'samurai', 'octopus'].forEach((character, index) => {
       const painted = mockContext();
+      const dress = DRESSES[(index % (DRESSES.length - 1)) + 1];
       drawScene(painted, 800, 600, scene({
         character,
-        pose: ['stand', 'load', 'tuck', 'land', 'stumble'][index],
+        pose: ['stand', 'load', 'tuck', 'land', 'stumble'][index % 5],
         pencil: false,
         fleck: 0,
         blot: 0,
         showScore: false,
         hint: '',
-        dress: DRESSES[index + 1],
+        dress,
       }));
-      expect(styleWas(painted, 'fillStyle', DRESSES[index + 1].skirt)).toBe(true);
-      expect(styleWas(painted, 'fillStyle', DRESSES[index + 1].deep)).toBe(true);
+      expect(styleWas(painted, 'fillStyle', dress.skirt)).toBe(true);
+      if (character !== 'octopus') {
+        expect(styleWas(painted, 'fillStyle', dress.deep)).toBe(true);
+      }
       identity[character].forEach((color) => {
         expect(styleWas(painted, 'fillStyle', color)).toBe(true);
       });
@@ -557,6 +561,10 @@ describe('drawScene', () => {
           id: 'samurai', label: 'samurai', index: 4,
           x: 504, y: 220, w: 96, h: 100, selected: false, locked: false, done: false,
         },
+        {
+          id: 'octopus', label: 'octopus', index: 5,
+          x: 608, y: 220, w: 96, h: 100, selected: false, locked: false, done: false,
+        },
       ],
     }));
     expect(styleWas(costumes, 'fillStyle', COLOR.cinnabar)).toBe(true);
@@ -564,6 +572,7 @@ describe('drawScene', () => {
     expect(styleWas(costumes, 'fillStyle', COLOR.ink)).toBe(true);
     expect(styleWas(costumes, 'fillStyle', MARKER.pumpkin)).toBe(false);
     expect(costumes.calls.some((call) => call[0] === 'quadraticCurveTo')).toBe(true);
+    expect(costumes.calls.some((call) => call[0] === 'ellipse')).toBe(true);
 
     const levels = mockContext();
     drawScene(levels, 390, 844, scene({
@@ -740,7 +749,7 @@ describe('drawScene', () => {
     drawScene(highCtx, 900, 640, scene({ enhanced: true, score: 60 }));
     expect(highCtx.calls.some((call) => call[0] === 'set' && call[1] === 'fillStyle' && call[2] === '#dbba92')).toBe(true);
 
-    const chars = ['ballerina', 'scarecrow', 'pumpkin', 'samurai', 'bun'];
+    const chars = ['ballerina', 'scarecrow', 'pumpkin', 'samurai', 'octopus', 'bun'];
     chars.forEach((c) => {
       const cCtx = mockContext();
       drawScene(cCtx, 900, 640, scene({
