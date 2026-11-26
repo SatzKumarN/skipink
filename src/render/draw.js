@@ -262,6 +262,13 @@ function bodyTriangle(spec) {
 function gripsLocal(spec, character = 'bun') {
   if (COSTUME_IDS.has(character)) {
     const [hx, hy] = spec.head;
+    // Octopus arms angle down ~30° like the reference; other costumes stay level.
+    if (character === 'octopus') {
+      return [
+        { x: hx - 40, y: hy + 54 },
+        { x: hx + 40, y: hy + 54 },
+      ];
+    }
     return [
       { x: hx - 46, y: hy + 40 },
       { x: hx + 46, y: hy + 40 },
@@ -1017,108 +1024,126 @@ function drawOctopus(ctx, spec, colors, tone) {
   const frame = costumeFrame(spec);
   const { hx, hy, neck, hem } = frame;
   const skin = tone || MARKER.octopus;
-  const robe = tone || colors.skirt || MARKER.octopusRobe;
-  const trim = tone || MARKER.gold;
+  // Fixed robe purple (character identity), not dress tint — matches reference.
+  const robe = tone || MARKER.octopusRobe;
+  const trim = tone || MARKER.octopusGold;
   const line = tone || COLOR.ink;
   const grips = gripsLocal(spec, 'octopus');
-  const waist = neck + (hem - neck) * 0.48;
-  const flare = 36;
+  // Head width ≈ robe base; head+beard ≈ 2/3 robe height (per reference).
+  const flare = 30;
+  const baseY = hem + 4;
+  const apexY = neck + 8;
+  const waist = apexY + (baseY - apexY) * 0.48;
+  const halfAt = (y) => flare * Math.max(0, (y - apexY) / (baseY - apexY));
 
-  drawStickLegs(ctx, spec, hem, tone);
+  // Stick legs under the hem
+  ink(ctx, 4, (pen) => {
+    pen.moveTo(hx - 5, baseY - 1);
+    pen.lineTo(hx - 5, 18);
+    pen.moveTo(hx + 5, baseY - 1);
+    pen.lineTo(hx + 5, 18);
+  }, line);
 
-  // Purple triangular robe (apex tucked under tentacles)
+  // Purple A-line triangular robe (apex tucked under tentacle beard)
   ctx.beginPath();
-  ctx.moveTo(hx, neck + 2);
-  ctx.lineTo(hx + flare, hem + 4);
-  ctx.lineTo(hx - flare, hem + 4);
+  ctx.moveTo(hx, apexY);
+  ctx.lineTo(hx + flare, baseY);
+  ctx.lineTo(hx - flare, baseY);
   ctx.closePath();
   fillOutlined(ctx, robe, tone);
 
-  // Gold vertical center stripe
+  // Gold waist band — must stay inside the triangle silhouette
+  const bandHalf = halfAt(waist) * 0.92;
+  const bandTop = waist - 3.5;
+  const bandBot = waist + 4.5;
   ctx.beginPath();
-  ctx.moveTo(hx - 2.2, neck + 10);
-  ctx.lineTo(hx + 2.2, neck + 10);
-  ctx.lineTo(hx + 2.2, waist);
-  ctx.lineTo(hx - 2.2, waist);
+  ctx.moveTo(hx - bandHalf, bandTop);
+  ctx.lineTo(hx + bandHalf, bandTop);
+  ctx.lineTo(hx + halfAt(bandBot) * 0.92, bandBot);
+  ctx.lineTo(hx - halfAt(bandBot) * 0.92, bandBot);
   ctx.closePath();
   fillOutlined(ctx, trim, tone);
 
-  // Gold waist band
-  const bandHalf = flare * 0.72;
+  // Gold vertical center stripe (under beard → waist), drawn after band clip region
+  const stripeHalf = 2.8;
+  const stripeTop = apexY + 16;
   ctx.beginPath();
-  ctx.moveTo(hx - bandHalf, waist - 3);
-  ctx.lineTo(hx + bandHalf, waist - 3);
-  ctx.lineTo(hx + bandHalf + 1, waist + 5);
-  ctx.lineTo(hx - bandHalf - 1, waist + 5);
+  ctx.moveTo(hx - stripeHalf, stripeTop);
+  ctx.lineTo(hx + stripeHalf, stripeTop);
+  ctx.lineTo(hx + stripeHalf, bandTop);
+  ctx.lineTo(hx - stripeHalf, bandTop);
   ctx.closePath();
   fillOutlined(ctx, trim, tone);
 
-  // Gold lower trim flaps (wide diagonal panels from hem center up to waist corners)
-  ctx.beginPath();
-  ctx.moveTo(hx - 5, hem + 2);
-  ctx.lineTo(hx - bandHalf + 1, waist + 5);
-  ctx.lineTo(hx - bandHalf * 0.45, waist + 5);
-  ctx.lineTo(hx - 1.5, hem + 2);
-  ctx.closePath();
-  fillOutlined(ctx, trim, tone);
-  ctx.beginPath();
-  ctx.moveTo(hx + 5, hem + 2);
-  ctx.lineTo(hx + bandHalf - 1, waist + 5);
-  ctx.lineTo(hx + bandHalf * 0.45, waist + 5);
-  ctx.lineTo(hx + 1.5, hem + 2);
-  ctx.closePath();
-  fillOutlined(ctx, trim, tone);
+  // Lower half: diagonal gold trim lines from waist corners to near hem center,
+  // leaving a purple triangle at the base (reference ceremonial trim).
+  const gap = 7;
+  ink(ctx, 3.8, (pen) => {
+    pen.moveTo(hx - bandHalf + 1, bandBot);
+    pen.lineTo(hx - gap, baseY - 1);
+    pen.moveTo(hx + bandHalf - 1, bandBot);
+    pen.lineTo(hx + gap, baseY - 1);
+  }, trim);
 
-  // Stick arms angling down ~30° with black circle hands
-  ink(ctx, 4, (pen) => {
+  // Stick arms from upper robe sides, angling down ~30° to circle hands
+  ink(ctx, 3.6, (pen) => {
     grips.forEach((grip, index) => {
       const sign = index === 0 ? -1 : 1;
-      pen.moveTo(hx + sign * 10, neck + 14);
+      const rootY = apexY + (baseY - apexY) * 0.2;
+      const rootX = hx + sign * halfAt(rootY) * 0.85;
+      pen.moveTo(rootX, rootY);
       pen.lineTo(grip.x, grip.y);
     });
   }, line);
   drawPalms(ctx, grips, tone);
 
-  // Bulbous reddish-orange octopus head
-  const headR = 18;
+  // Round reddish-orange mantle — width ≈ robe base.
+  // Fill full ellipse but stroke only the upper arc so tentacles merge (no hard chin chord).
+  const headRx = flare * 0.98;
+  const headRy = flare * 0.92;
   const headY = hy + 2;
   ctx.beginPath();
-  ctx.ellipse(hx, headY, headR * 0.92, headR, 0, 0, Math.PI * 2);
-  fillOutlined(ctx, skin, tone);
+  ctx.ellipse(hx, headY, headRx, headRy, 0, 0, Math.PI * 2);
+  ctx.fillStyle = skin;
+  ctx.fill();
+  ctx.strokeStyle = line;
+  ctx.lineWidth = 2.6;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  // Canvas angles: 0=east, PI/2=south, PI=west, -PI/2=north. Leave bottom open.
+  ctx.ellipse(hx, headY, headRx, headRy, 0, Math.PI - 0.4, 0.4);
+  ctx.stroke();
 
-  // Six short tentacle "beard" — outer pair tips curl out/up; inner four hang down
-  const tentBaseY = headY + headR * 0.58;
+  // Six thick tentacle beard merged under mantle; outer pair J-curl out/up; center longest
+  const tentBaseY = headY + headRy * 0.2;
   const tentacles = [
-    { x: -12, curl: -1, drop: 15, tipUp: 4 },
-    { x: -7, curl: 0, drop: 19, tipUp: 0 },
-    { x: -2.4, curl: 0, drop: 21, tipUp: 0 },
-    { x: 2.4, curl: 0, drop: 21, tipUp: 0 },
-    { x: 7, curl: 0, drop: 19, tipUp: 0 },
-    { x: 12, curl: 1, drop: 15, tipUp: 4 },
+    { x: -headRx * 0.52, curl: -1, drop: 15, tipUp: 6, half: 5.0 },
+    { x: -headRx * 0.3, curl: -0.05, drop: 17, tipUp: 0, half: 4.7 },
+    { x: -headRx * 0.09, curl: 0, drop: 19, tipUp: 0, half: 4.8 },
+    { x: headRx * 0.09, curl: 0, drop: 19, tipUp: 0, half: 4.8 },
+    { x: headRx * 0.3, curl: 0.05, drop: 17, tipUp: 0, half: 4.7 },
+    { x: headRx * 0.52, curl: 1, drop: 15, tipUp: 6, half: 5.0 },
   ];
   tentacles.forEach((t) => {
-    const tipX = hx + t.x + t.curl * 5;
+    const tipX = hx + t.x + t.curl * 10;
     const tipY = tentBaseY + t.drop - t.tipUp;
-    const midX = hx + t.x + t.curl * 1.5;
-    const midY = tentBaseY + t.drop * 0.6;
+    const midX = hx + t.x + t.curl * 2.5;
+    const midY = tentBaseY + t.drop * 0.62;
+    const hw = t.half;
     ctx.beginPath();
-    ctx.moveTo(hx + t.x - 3.2, tentBaseY);
-    ctx.quadraticCurveTo(midX - 3.4, midY, tipX - 2.4, tipY);
-    ctx.quadraticCurveTo(tipX + t.curl * 1.5, tipY + 2.8, tipX + 2.4, tipY);
-    ctx.quadraticCurveTo(midX + 3.4, midY, hx + t.x + 3.2, tentBaseY);
+    ctx.moveTo(hx + t.x - hw, tentBaseY);
+    ctx.quadraticCurveTo(midX - hw, midY, tipX - hw * 0.7, tipY);
+    ctx.quadraticCurveTo(tipX + t.curl * 3.8, tipY + 3.6, tipX + hw * 0.7, tipY);
+    ctx.quadraticCurveTo(midX + hw, midY, hx + t.x + hw, tentBaseY);
     ctx.closePath();
     fillOutlined(ctx, skin, tone);
   });
 
-  // Large slanted villainous black eyes (almond, angled down toward center)
+  // Large angry eyes: outer corners high (rotated ellipses)
   ctx.fillStyle = line;
   [-1, 1].forEach((sign) => {
     ctx.beginPath();
-    ctx.moveTo(hx + sign * 3.2, headY + 1.5);
-    ctx.quadraticCurveTo(hx + sign * 5.5, headY - 5.5, hx + sign * 11.5, headY - 3.5);
-    ctx.quadraticCurveTo(hx + sign * 12.5, headY + 1.2, hx + sign * 7.5, headY + 3.2);
-    ctx.quadraticCurveTo(hx + sign * 4.5, headY + 3.5, hx + sign * 3.2, headY + 1.5);
-    ctx.closePath();
+    ctx.ellipse(hx + sign * 9.5, headY - 1.2, 7.6, 4.4, sign * -0.58, 0, Math.PI * 2);
     ctx.fill();
   });
 }

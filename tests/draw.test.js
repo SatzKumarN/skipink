@@ -315,7 +315,7 @@ describe('drawScene', () => {
       scarecrow: [MARKER.straw, MARKER.band],
       pumpkin: [MARKER.pumpkin, MARKER.leaf, MARKER.leafDeep],
       samurai: [MARKER.helm, MARKER.helmRed, MARKER.gold],
-      octopus: [MARKER.octopus, MARKER.gold],
+      octopus: [MARKER.octopus, MARKER.octopusRobe, MARKER.octopusGold],
     };
     ['scarecrow', 'pumpkin', 'samurai', 'octopus'].forEach((character, index) => {
       const painted = mockContext();
@@ -330,8 +330,11 @@ describe('drawScene', () => {
         hint: '',
         dress,
       }));
-      expect(styleWas(painted, 'fillStyle', dress.skirt)).toBe(true);
-      if (character !== 'octopus') {
+      if (character === 'octopus') {
+        expect(styleWas(painted, 'fillStyle', MARKER.octopusRobe)).toBe(true);
+        expect(styleWas(painted, 'strokeStyle', MARKER.octopusGold)).toBe(true);
+      } else {
+        expect(styleWas(painted, 'fillStyle', dress.skirt)).toBe(true);
         expect(styleWas(painted, 'fillStyle', dress.deep)).toBe(true);
       }
       identity[character].forEach((color) => {

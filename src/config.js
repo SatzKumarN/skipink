@@ -64,8 +64,9 @@ export const MARKER = {
   helm: '#2c365c',
   helmRed: '#b4332c',
   gold: '#e6b423',
-  octopus: '#e85a28',
-  octopusRobe: '#6b3a9e',
+  octopus: '#e85034',
+  octopusRobe: '#6b49a3',
+  octopusGold: '#f9bf3b',
 };
 
 export const DRESSES = [
