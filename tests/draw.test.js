@@ -315,7 +315,7 @@ describe('drawScene', () => {
       scarecrow: [MARKER.straw, MARKER.band],
       pumpkin: [MARKER.pumpkin, MARKER.leaf, MARKER.leafDeep],
       samurai: [MARKER.helm, MARKER.helmRed, MARKER.gold],
-      octopus: [MARKER.octopus, MARKER.octopusRobe, MARKER.octopusGold],
+      octopus: [MARKER.octopusRobe, MARKER.octopusGold],
     };
     ['scarecrow', 'pumpkin', 'samurai', 'octopus'].forEach((character, index) => {
       const painted = mockContext();
@@ -333,6 +333,11 @@ describe('drawScene', () => {
       if (character === 'octopus') {
         expect(styleWas(painted, 'fillStyle', MARKER.octopusRobe)).toBe(true);
         expect(styleWas(painted, 'strokeStyle', MARKER.octopusGold)).toBe(true);
+        // Head may be sprite (drawImage) or procedural fallback (fill).
+        expect(
+          painted.calls.some((c) => c[0] === 'drawImage')
+          || styleWas(painted, 'fillStyle', MARKER.octopus),
+        ).toBe(true);
       } else {
         expect(styleWas(painted, 'fillStyle', dress.skirt)).toBe(true);
         expect(styleWas(painted, 'fillStyle', dress.deep)).toBe(true);

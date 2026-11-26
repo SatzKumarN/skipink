@@ -26,6 +26,7 @@ import backSymbolUrl from '../assets/back-symbol.png';
 import charactersSymbolUrl from '../assets/characters-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
 import levelsSymbolUrl from '../assets/levels-symbol.png';
+import octopusHeadUrl from '../assets/octopus-head.png';
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
@@ -45,6 +46,7 @@ const BRUSH_ART = {
   infinity: { url: infinitySymbolUrl, image: null, tints: new Map() },
   levels: { url: levelsSymbolUrl, image: null, tints: new Map() },
   characters: { url: charactersSymbolUrl, image: null, tints: new Map() },
+  octopusHead: { url: octopusHeadUrl, image: null, tints: new Map() },
 };
 
 export function setBackArrowArt(image) {
@@ -1097,55 +1099,59 @@ function drawOctopus(ctx, spec, colors, tone) {
   }, line);
   drawPalms(ctx, grips, tone);
 
-  // Round reddish-orange mantle — width ≈ robe base.
-  // Fill full ellipse but stroke only the upper arc so tentacles merge (no hard chin chord).
-  const headRx = flare * 0.98;
-  const headRy = flare * 0.92;
-  const headY = hy + 2;
-  ctx.beginPath();
-  ctx.ellipse(hx, headY, headRx, headRy, 0, 0, Math.PI * 2);
-  ctx.fillStyle = skin;
-  ctx.fill();
-  ctx.strokeStyle = line;
-  ctx.lineWidth = 2.6;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  // Canvas angles: 0=east, PI/2=south, PI=west, -PI/2=north. Leave bottom open.
-  ctx.ellipse(hx, headY, headRx, headRy, 0, Math.PI - 0.4, 0.4);
-  ctx.stroke();
-
-  // Six thick tentacle beard merged under mantle; outer pair J-curl out/up; center longest
-  const tentBaseY = headY + headRy * 0.2;
-  const tentacles = [
-    { x: -headRx * 0.52, curl: -1, drop: 15, tipUp: 6, half: 5.0 },
-    { x: -headRx * 0.3, curl: -0.05, drop: 17, tipUp: 0, half: 4.7 },
-    { x: -headRx * 0.09, curl: 0, drop: 19, tipUp: 0, half: 4.8 },
-    { x: headRx * 0.09, curl: 0, drop: 19, tipUp: 0, half: 4.8 },
-    { x: headRx * 0.3, curl: 0.05, drop: 17, tipUp: 0, half: 4.7 },
-    { x: headRx * 0.52, curl: 1, drop: 15, tipUp: 6, half: 5.0 },
-  ];
-  tentacles.forEach((t) => {
-    const tipX = hx + t.x + t.curl * 10;
-    const tipY = tentBaseY + t.drop - t.tipUp;
-    const midX = hx + t.x + t.curl * 2.5;
-    const midY = tentBaseY + t.drop * 0.62;
-    const hw = t.half;
+  // Face: reference-matched octopus head sprite (tentacles are the lower face).
+  const headImg = loadBrushArt('octopusHead');
+  const size = artSize(headImg);
+  // Size ≈ robe base width; sit low so tentacles drape over the robe apex.
+  const headH = flare * 2.55;
+  const headW = size ? headH * (size.width / size.height) : flare * 2.0;
+  const headTop = hy - flare * 0.55;
+  if (headImg && size) {
+    const art = tone && tone !== COLOR.ink
+      ? tintBrushArt('octopusHead', headImg, tone, headW, headH)
+      : headImg;
+    ctx.drawImage(art, hx - headW / 2, headTop, headW, headH);
+  } else {
+    // Fallback procedural face when the sprite has not loaded yet (tests / boot).
+    const Rx = flare * 0.92;
+    const Ry = flare * 1.0;
+    const cy = hy + 2;
+    const lobes = [
+      { lx: -1.08, ly: 0.52, rw: 0.28, rh: 0.38, rot: -0.95 },
+      { lx: -0.55, ly: 0.78, rw: 0.24, rh: 0.4, rot: -0.25 },
+      { lx: -0.18, ly: 0.75, rw: 0.22, rh: 0.36, rot: 0 },
+      { lx: 0.18, ly: 0.75, rw: 0.22, rh: 0.36, rot: 0 },
+      { lx: 0.55, ly: 0.78, rw: 0.24, rh: 0.4, rot: 0.25 },
+      { lx: 1.08, ly: 0.52, rw: 0.28, rh: 0.38, rot: 0.95 },
+    ];
+    lobes.forEach((t) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + Rx * t.lx, cy + Ry * t.ly, Rx * t.rw, Ry * t.rh, t.rot, 0, Math.PI * 2);
+      ctx.fillStyle = skin;
+      ctx.fill();
+    });
     ctx.beginPath();
-    ctx.moveTo(hx + t.x - hw, tentBaseY);
-    ctx.quadraticCurveTo(midX - hw, midY, tipX - hw * 0.7, tipY);
-    ctx.quadraticCurveTo(tipX + t.curl * 3.8, tipY + 3.6, tipX + hw * 0.7, tipY);
-    ctx.quadraticCurveTo(midX + hw, midY, hx + t.x + hw, tentBaseY);
-    ctx.closePath();
-    fillOutlined(ctx, skin, tone);
-  });
-
-  // Large angry eyes: outer corners high (rotated ellipses)
-  ctx.fillStyle = line;
-  [-1, 1].forEach((sign) => {
-    ctx.beginPath();
-    ctx.ellipse(hx + sign * 9.5, headY - 1.2, 7.6, 4.4, sign * -0.58, 0, Math.PI * 2);
+    ctx.ellipse(hx, cy, Rx, Ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = skin;
     ctx.fill();
-  });
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.ellipse(hx, cy, Rx, Ry, 0, Math.PI - 0.25, 0.25);
+    ctx.stroke();
+    lobes.forEach((t) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + Rx * t.lx, cy + Ry * t.ly, Rx * t.rw, Ry * t.rh, t.rot, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.fillStyle = line;
+    [-1, 1].forEach((sign) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + sign * (Rx * 0.38), cy - Ry * 0.12, Rx * 0.34, Ry * 0.2, sign * -0.62, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
 }
 
 function drawCostume(ctx, spec, colors, character, tone) {
