@@ -1,3 +1,4 @@
+import { bindInstallPrompt, registerServiceWorker } from './install.js';
 import { startGame } from './runtime.js';
 
 export function boot(globals = globalThis) {
@@ -5,13 +6,16 @@ export function boot(globals = globalThis) {
   if (!doc) throw new Error('Skipink is missing its page.');
   const canvas = doc.querySelector('#page');
   const button = doc.querySelector('#jump');
+  const installButton = doc.querySelector('#install');
   const toggle = doc.querySelector('#view-toggle');
   const colorToggle = doc.querySelector('#color-toggle');
   const colorPalette = doc.querySelector('#color-palette');
   const randomToggle = doc.querySelector('#random-toggle');
   const announcer = doc.querySelector('#announcer');
   if (!canvas || !button) throw new Error('Skipink is missing its page.');
-  return startGame({
+  const install = bindInstallPrompt(installButton, globals);
+  registerServiceWorker(globals);
+  const game = startGame({
     canvas,
     button,
     toggle,
@@ -24,4 +28,10 @@ export function boot(globals = globalThis) {
     now: () => globals.performance.now(),
     raf: (fn) => globals.requestAnimationFrame(fn),
   });
+  const stop = game.stop;
+  game.stop = () => {
+    install.dispose();
+    stop();
+  };
+  return game;
 }

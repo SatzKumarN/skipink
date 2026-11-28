@@ -13,6 +13,10 @@ npm run dev
 
 On the title page choose the paint-smear ∞ for an open run, the rising signal bars for ten staged sheets (10 skips, then 20, up to 100), or the head-with-bun mark to pick a skipper. Locked levels open after you clear the one before. The character sheet shows figure previews only: head-with-bun, ballerina, scarecrow, pumpkin, or samurai. Dress color still changes each fresh run. The scarecrow keeps the straw hat, the pumpkin keeps the orange head, and the samurai keeps the helmet; the cloth takes the run color. Space, J, the up arrow, a click, or a tap jumps. Escape goes back. Press V or tap the top-right star symbol to toggle between Classic view (`✧`) and Enhanced view (`✦`). Your best infinity count, cleared levels, character, and view mode stay in the browser.
 
+## Install on Android
+
+On Android Chrome, an **Install** button appears in the top-right once the page is installable (HTTPS, web app manifest, and service worker). Tap it to add Skipink to your home screen as a standalone app. The button stays hidden in desktop browsers that do not offer install, and while the game is already running from the home screen. On iPhone/iPad, use Share → Add to Home Screen.
+
 ## Enhanced View
 
 Toggling Enhanced view (`✦`) activates the Living Notebook and Desk World:
