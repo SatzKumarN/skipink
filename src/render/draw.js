@@ -26,6 +26,7 @@ import backSymbolUrl from '../assets/back-symbol.png';
 import charactersSymbolUrl from '../assets/characters-symbol.png';
 import infinitySymbolUrl from '../assets/infinity-symbol.png';
 import levelsSymbolUrl from '../assets/levels-symbol.png';
+import octopusHeadUrl from '../assets/octopus-head.png';
 
 const BRUSH = '"Caveat Brush", Georgia, serif';
 const PEN = '"Kalam", Georgia, serif';
@@ -45,6 +46,7 @@ const BRUSH_ART = {
   infinity: { url: infinitySymbolUrl, image: null, tints: new Map() },
   levels: { url: levelsSymbolUrl, image: null, tints: new Map() },
   characters: { url: charactersSymbolUrl, image: null, tints: new Map() },
+  octopusHead: { url: octopusHeadUrl, image: null, tints: new Map() },
 };
 
 export function setBackArrowArt(image) {
@@ -262,6 +264,13 @@ function bodyTriangle(spec) {
 function gripsLocal(spec, character = 'bun') {
   if (COSTUME_IDS.has(character)) {
     const [hx, hy] = spec.head;
+    // Octopus arms angle down ~30° like the reference; other costumes stay level.
+    if (character === 'octopus') {
+      return [
+        { x: hx - 40, y: hy + 54 },
+        { x: hx + 40, y: hy + 54 },
+      ];
+    }
     return [
       { x: hx - 46, y: hy + 40 },
       { x: hx + 46, y: hy + 40 },
@@ -602,7 +611,7 @@ function drawBalletShoes(ctx, vm) {
   ctx.restore();
 }
 
-const COSTUME_IDS = new Set(['scarecrow', 'pumpkin', 'samurai']);
+const COSTUME_IDS = new Set(['scarecrow', 'pumpkin', 'samurai', 'octopus']);
 
 function costumeFrame(spec) {
   const [hx, hy] = spec.head;
@@ -1013,9 +1022,137 @@ function drawSamurai(ctx, spec, colors, tone) {
   ctx.fill();
 }
 
+function drawOctopus(ctx, spec, colors, tone) {
+  const frame = costumeFrame(spec);
+  const { hx, hy, neck, hem } = frame;
+  const skin = tone || MARKER.octopus;
+  // Fixed robe purple (character identity), not dress tint — matches reference.
+  const robe = tone || MARKER.octopusRobe;
+  const trim = tone || MARKER.octopusGold;
+  const line = tone || COLOR.ink;
+  const grips = gripsLocal(spec, 'octopus');
+  // Share costumeFrame hem/feet with scarecrow/pumpkin/samurai (same baseline).
+  const flare = 30;
+  const baseY = hem;
+  const apexY = neck + 4;
+  const waist = apexY + (baseY - apexY) * 0.48;
+  const halfAt = (y) => flare * Math.max(0, (y - apexY) / (baseY - apexY));
+
+  // Stick legs to pose feet — same as other costumes (was hardcoded to y=18).
+  drawStickLegs(ctx, spec, hem, tone);
+
+  // Purple A-line triangular robe (apex tucked under tentacle beard)
+  ctx.beginPath();
+  ctx.moveTo(hx, apexY);
+  ctx.lineTo(hx + flare, baseY);
+  ctx.lineTo(hx - flare, baseY);
+  ctx.closePath();
+  fillOutlined(ctx, robe, tone);
+
+  // Gold waist band — must stay inside the triangle silhouette
+  const bandHalf = halfAt(waist) * 0.92;
+  const bandTop = waist - 3.5;
+  const bandBot = waist + 4.5;
+  ctx.beginPath();
+  ctx.moveTo(hx - bandHalf, bandTop);
+  ctx.lineTo(hx + bandHalf, bandTop);
+  ctx.lineTo(hx + halfAt(bandBot) * 0.92, bandBot);
+  ctx.lineTo(hx - halfAt(bandBot) * 0.92, bandBot);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+
+  // Gold vertical center stripe (under beard → waist), drawn after band clip region
+  const stripeHalf = 2.8;
+  const stripeTop = apexY + 16;
+  ctx.beginPath();
+  ctx.moveTo(hx - stripeHalf, stripeTop);
+  ctx.lineTo(hx + stripeHalf, stripeTop);
+  ctx.lineTo(hx + stripeHalf, bandTop);
+  ctx.lineTo(hx - stripeHalf, bandTop);
+  ctx.closePath();
+  fillOutlined(ctx, trim, tone);
+
+  // Lower half: diagonal gold trim lines from waist corners to near hem center,
+  // leaving a purple triangle at the base (reference ceremonial trim).
+  const gap = 7;
+  ink(ctx, 3.8, (pen) => {
+    pen.moveTo(hx - bandHalf + 1, bandBot);
+    pen.lineTo(hx - gap, baseY - 1);
+    pen.moveTo(hx + bandHalf - 1, bandBot);
+    pen.lineTo(hx + gap, baseY - 1);
+  }, trim);
+
+  // Stick arms from upper robe sides, angling down ~30° to circle hands
+  ink(ctx, 3.6, (pen) => {
+    grips.forEach((grip, index) => {
+      const sign = index === 0 ? -1 : 1;
+      const rootY = apexY + (baseY - apexY) * 0.2;
+      const rootX = hx + sign * halfAt(rootY) * 0.85;
+      pen.moveTo(rootX, rootY);
+      pen.lineTo(grip.x, grip.y);
+    });
+  }, line);
+  drawPalms(ctx, grips, tone);
+
+  // Face: reference-matched octopus head sprite (tentacles are the lower face).
+  const headImg = loadBrushArt('octopusHead');
+  const size = artSize(headImg);
+  // Size ≈ robe base width; sit low so tentacles drape over the robe apex.
+  const headH = flare * 2.55;
+  const headW = size ? headH * (size.width / size.height) : flare * 2.0;
+  const headTop = hy - flare * 0.55;
+  if (headImg && size) {
+    const art = tone && tone !== COLOR.ink
+      ? tintBrushArt('octopusHead', headImg, tone, headW, headH)
+      : headImg;
+    ctx.drawImage(art, hx - headW / 2, headTop, headW, headH);
+  } else {
+    // Fallback procedural face when the sprite has not loaded yet (tests / boot).
+    const Rx = flare * 0.92;
+    const Ry = flare * 1.0;
+    const cy = hy + 2;
+    const lobes = [
+      { lx: -1.08, ly: 0.52, rw: 0.28, rh: 0.38, rot: -0.95 },
+      { lx: -0.55, ly: 0.78, rw: 0.24, rh: 0.4, rot: -0.25 },
+      { lx: -0.18, ly: 0.75, rw: 0.22, rh: 0.36, rot: 0 },
+      { lx: 0.18, ly: 0.75, rw: 0.22, rh: 0.36, rot: 0 },
+      { lx: 0.55, ly: 0.78, rw: 0.24, rh: 0.4, rot: 0.25 },
+      { lx: 1.08, ly: 0.52, rw: 0.28, rh: 0.38, rot: 0.95 },
+    ];
+    lobes.forEach((t) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + Rx * t.lx, cy + Ry * t.ly, Rx * t.rw, Ry * t.rh, t.rot, 0, Math.PI * 2);
+      ctx.fillStyle = skin;
+      ctx.fill();
+    });
+    ctx.beginPath();
+    ctx.ellipse(hx, cy, Rx, Ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = skin;
+    ctx.fill();
+    ctx.strokeStyle = line;
+    ctx.lineWidth = 2.8;
+    ctx.beginPath();
+    ctx.ellipse(hx, cy, Rx, Ry, 0, Math.PI - 0.25, 0.25);
+    ctx.stroke();
+    lobes.forEach((t) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + Rx * t.lx, cy + Ry * t.ly, Rx * t.rw, Ry * t.rh, t.rot, 0, Math.PI * 2);
+      ctx.stroke();
+    });
+    ctx.fillStyle = line;
+    [-1, 1].forEach((sign) => {
+      ctx.beginPath();
+      ctx.ellipse(hx + sign * (Rx * 0.38), cy - Ry * 0.12, Rx * 0.34, Ry * 0.2, sign * -0.62, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+
+}
+
 function drawCostume(ctx, spec, colors, character, tone) {
   if (character === 'pumpkin') drawPumpkin(ctx, spec, colors, tone);
   else if (character === 'samurai') drawSamurai(ctx, spec, colors, tone);
+  else if (character === 'octopus') drawOctopus(ctx, spec, colors, tone);
   else drawScarecrow(ctx, spec, colors, tone);
 }
 function figureKind(vm) {
@@ -1426,6 +1563,15 @@ function drawCharacterParticles(ctx, vm) {
     ctx.beginPath();
     ctx.arc(FIGURE.x, fy, 26 + t * 10, -0.4, 0.4);
     ctx.stroke();
+  } else if (character === 'octopus') {
+    [-16, 0, 16].forEach((ox, i) => {
+      ctx.fillStyle = i === 1 ? MARKER.octopus : MARKER.octopusRobe;
+      const x = FIGURE.x + ox + Math.sin(t * 5 + i) * 10;
+      const y = fy - t * 22 - i * 4;
+      ctx.beginPath();
+      ctx.ellipse(x, y, 3.5, 2.4, i * 0.6 + t, 0, Math.PI * 2);
+      ctx.fill();
+    });
   } else {
     ctx.fillStyle = COLOR.ink;
     [-12, 0, 12].forEach((ox, i) => {

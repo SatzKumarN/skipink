@@ -26,6 +26,7 @@ export const CHARACTERS = [
   { id: 'scarecrow', label: 'scarecrow' },
   { id: 'pumpkin', label: 'pumpkin' },
   { id: 'samurai', label: 'samurai' },
+  { id: 'octopus', label: 'octopus' },
 ];
 
 export const DEFAULT_CHARACTER = CHARACTERS[0].id;
@@ -63,6 +64,9 @@ export const MARKER = {
   helm: '#2c365c',
   helmRed: '#b4332c',
   gold: '#e6b423',
+  octopus: '#e85034',
+  octopusRobe: '#6b49a3',
+  octopusGold: '#f9bf3b',
 };
 
 export const DRESSES = [

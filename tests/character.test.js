@@ -4,6 +4,7 @@ import {
   drawBunFaceAndRibbon,
   drawEnhancedCostume,
   drawEnhancedFigure,
+  drawOctopusFeatures,
   drawPumpkinFeatures,
   drawSamuraiFeatures,
   drawScarecrowFeatures,
@@ -101,6 +102,22 @@ describe('character enhancements', () => {
     });
   });
 
+  describe('drawOctopusFeatures', () => {
+    it('draws swaying outer tentacle tips', () => {
+      const ctx = mockContext();
+      drawOctopusFeatures(ctx, { enhanced: true, clock: 0.4 }, dummyFrame);
+      expect(ctx.calls.some((c) => c[0] === 'quadraticCurveTo')).toBe(true);
+      expect(ctx.calls.some((c) => c[0] === 'stroke')).toBe(true);
+    });
+
+    it('draws gold trim glint on streak >= 4', () => {
+      const ctx = mockContext();
+      drawOctopusFeatures(ctx, { enhanced: true, streak: 5, clock: 0.2 }, dummyFrame);
+      expect(ctx.calls.some((c) => c[0] === 'arc')).toBe(true);
+      expect(ctx.calls.some((c) => c[0] === 'fill')).toBe(true);
+    });
+  });
+
   describe('drawEnhancedFigure', () => {
     it('does nothing when not enhanced', () => {
       const ctx = mockContext();
@@ -129,7 +146,7 @@ describe('character enhancements', () => {
       expect(ctx.calls.length).toBe(0);
     });
 
-    it('dispatches to pumpkin, samurai, and scarecrow', () => {
+    it('dispatches to pumpkin, samurai, scarecrow, and octopus', () => {
       const pCtx = mockContext();
       drawEnhancedCostume(pCtx, { enhanced: true }, dummyFrame, 'pumpkin');
       expect(pCtx.calls.some((c) => c[0] === 'fill')).toBe(true);
@@ -141,6 +158,10 @@ describe('character enhancements', () => {
       const cCtx = mockContext();
       drawEnhancedCostume(cCtx, { enhanced: true }, dummyFrame, 'scarecrow');
       expect(cCtx.calls.some((c) => c[0] === 'fill')).toBe(true);
+
+      const oCtx = mockContext();
+      drawEnhancedCostume(oCtx, { enhanced: true, clock: 0.3 }, dummyFrame, 'octopus');
+      expect(oCtx.calls.some((c) => c[0] === 'stroke')).toBe(true);
     });
   });
 });
