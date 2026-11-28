@@ -18,7 +18,7 @@ describe('boot', () => {
   });
 
   it('starts a game on the real page objects', () => {
-    document.body.innerHTML = '<canvas id="page"></canvas><button id="jump"></button><button id="view-toggle"></button><div id="announcer"></div>';
+    document.body.innerHTML = '<canvas id="page"></canvas><button id="jump"></button><button id="install" class="hidden" hidden></button><button id="view-toggle"></button><div id="announcer"></div>';
     const canvas = document.querySelector('#page');
     canvas.getContext = () => mockContext();
     const queued = [];
@@ -27,9 +27,13 @@ describe('boot', () => {
       return 1;
     };
     window.matchMedia = () => ({ matches: false });
+    window.navigator.serviceWorker = {
+      register: () => Promise.resolve({ scope: './' }),
+    };
     const game = boot(window);
     queued[0](window.performance.now());
     expect(document.querySelector('#jump').textContent).toBe('Choose');
+    expect(document.querySelector('#install').hidden).toBe(true);
     game.stop();
   });
 });

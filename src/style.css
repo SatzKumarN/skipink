@@ -103,6 +103,25 @@ canvas {
   outline-offset: 2px;
 }
 
+.install-btn {
+  width: auto;
+  min-width: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #1b1714;
+  border-color: #c4452d;
+  background: #f4ead7;
+}
+
+.install-btn.hidden,
+.install-btn[hidden] {
+  display: none;
+}
+
 .view-toggle {
   font-size: 18px;
 }
@@ -125,6 +144,12 @@ canvas {
     width: 40px;
     height: 40px;
     font-size: 18px;
+  }
+  .install-btn {
+    width: auto;
+    min-width: 40px;
+    padding: 0 14px;
+    font-size: 14px;
   }
   .view-toggle {
     font-size: 20px;
