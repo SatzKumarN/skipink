@@ -1031,20 +1031,15 @@ function drawOctopus(ctx, spec, colors, tone) {
   const trim = tone || MARKER.octopusGold;
   const line = tone || COLOR.ink;
   const grips = gripsLocal(spec, 'octopus');
-  // Head width ≈ robe base; head+beard ≈ 2/3 robe height (per reference).
+  // Share costumeFrame hem/feet with scarecrow/pumpkin/samurai (same baseline).
   const flare = 30;
-  const baseY = hem + 4;
-  const apexY = neck + 8;
+  const baseY = hem;
+  const apexY = neck + 4;
   const waist = apexY + (baseY - apexY) * 0.48;
   const halfAt = (y) => flare * Math.max(0, (y - apexY) / (baseY - apexY));
 
-  // Stick legs under the hem
-  ink(ctx, 4, (pen) => {
-    pen.moveTo(hx - 5, baseY - 1);
-    pen.lineTo(hx - 5, 18);
-    pen.moveTo(hx + 5, baseY - 1);
-    pen.lineTo(hx + 5, 18);
-  }, line);
+  // Stick legs to pose feet — same as other costumes (was hardcoded to y=18).
+  drawStickLegs(ctx, spec, hem, tone);
 
   // Purple A-line triangular robe (apex tucked under tentacle beard)
   ctx.beginPath();
